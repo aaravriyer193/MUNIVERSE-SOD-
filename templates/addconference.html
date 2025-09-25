@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Add Conference — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a class="active" href="{{ url_for('conferences') }}">Back to Conferences</a>
+    </nav>
+  </header>
+
+  <main class="container narrow">
+    <h2 class="section-title">Create a Conference</h2>
+    <form class="card form" action="{{ url_for('add_conference') }}" method="POST">
+      <div class="two-col">
+        <label>Conference ID
+          <input required name="id" placeholder="e.g., sodmun2025" pattern="^[a-z0-9\\-]{3,40}$" />
+          <small>Lowercase letters, numbers, dash</small>
+        </label>
+        <label>Name
+          <input required name="name" placeholder="e.g., School of Diplomacy MUN 2025" />
+        </label>
+      </div>
+
+      <div class="two-col">
+        <label>Date
+          <input required name="date" type="date" />
+        </label>
+        <label>Location
+          <input required name="location" placeholder="City, Country" />
+        </label>
+      </div>
+
+      <label>Description
+        <textarea required name="description" rows="3" placeholder="Key councils, highlights, etc."></textarea>
+      </label>
+
+      <label>Banner filename (from <code>static/assets/img/conferences/</code>)
+        <input required name="banner" placeholder="e.g., sodmun2025.jpg" />
+        <small>The app stores as <code>img/conferences/&lt;filename&gt;</code>.</small>
+      </label>
+
+      <label>Tags (comma-separated, include # if you want)
+        <input name="tags" placeholder="#GA, #UNSC, #ECOSOC" />
+      </label>
+
+      <button class="btn btn-primary" type="submit">Create</button>
+    </form>
+  </main>
+</body>
+</html>
