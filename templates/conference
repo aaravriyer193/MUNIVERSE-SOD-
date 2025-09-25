@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ conference.name }} — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a class="active" href="{{ url_for('conferences') }}">Conferences</a>
+      <a href="{{ url_for('about') }}">About</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <article class="card">
+      <div class="hero">
+        <img src="{{ url_for('static', filename=conference.banner) }}" alt="{{ conference.name }}" />
+      </div>
+      <div class="pad">
+        <h1 class="page-title">{{ conference.name }}</h1>
+        <p class="muted">{{ conference.date }} • {{ conference.location }}</p>
+        <p class="desc">{{ conference.description }}</p>
+        <div class="tags">
+          {% for t in conference.tags %}
+            <span class="tag">{{ t }}</span>
+          {% endfor %}
+        </div>
+
+        <!-- Local-only attend toggle; independent of backend -->
+        <div class="attend-cta">
+          <button id="attendBtn" class="btn btn-primary">I'm Attending</button>
+          <small class="muted">This is saved locally on your device.</small>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const KEY = 'muniverse_attending';
+    const cid = '{{ conference.id }}';
+    const btn = document.getElementById('attendBtn');
+
+    function getList() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+      catch { return []; }
+    }
+    function setList(arr) {
+      localStorage.setItem(KEY, JSON.stringify(arr));
+    }
+    function sync() {
+      const arr = getList();
+      const attending = arr.includes(cid);
+      btn.textContent = attending ? 'Attending ✓' : "I'm Attending";
+      btn.classList.toggle('btn-secondary', attending);
+      btn.classList.toggle('btn-primary', !attending);
+    }
+    btn.addEventListener('click', () => {
+      const arr = getList();
+      const i = arr.indexOf(cid);
+      if (i >= 0) arr.splice(i, 1); else arr.push(cid);
+      setList(arr);
+      sync();
+    });
+    sync();
+  </script>
+</body>
+</html>
