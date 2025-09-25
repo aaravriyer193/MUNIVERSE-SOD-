@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <main class="center-hero">
+    <h1 class="headline">Redirecting…</h1>
+    <p class="muted">Taking you to the user's profile.</p>
+  </main>
+  <script>
+    // If this template ever gets rendered directly,
+    // support legacy links like /user.html?u=username by redirecting.
+    const p = new URLSearchParams(location.search);
+    const u = p.get('u');
+    if (u) location.href = `/profile/${encodeURIComponent(u)}`;
+    else location.href = '/feed';
+  </script>
+</body>
+</html>
