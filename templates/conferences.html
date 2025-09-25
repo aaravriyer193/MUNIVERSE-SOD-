@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Conferences — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a class="active" href="{{ url_for('conferences') }}">Conferences</a>
+      <a href="{{ url_for('about') }}">About</a>
+      <a class="pill" href="{{ url_for('add_conference') }}">+ Add Conference</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="search card">
+      <input id="q" placeholder="Filter by name, location, or tag (e.g., #UNSC)" />
+    </div>
+
+    {% if conferences|length == 0 %}
+      <div class="empty card">
+        <h3>No conferences listed</h3>
+        <p>Add one to get started.</p>
+        <a class="btn btn-primary" href="{{ url_for('add_conference') }}">Create Conference</a>
+      </div>
+    {% else %}
+      <section id="confGrid" class="grid">
+        {% for c in conferences %}
+          <article class="conf card"
+                   data-search="{{ (c.name ~ ' ' ~ c.location ~ ' ' ~ (c.tags|join(' ')))|lower }}">
+            <a class="conf-media" href="{{ url_for('conference', conf_id=c.id) }}">
+              <img src="{{ url_for('static', filename=c.banner) }}" alt="{{ c.name }}" loading="lazy" />
+            </a>
+            <div class="conf-body">
+              <h3 class="conf-title">
+                <a href="{{ url_for('conference', conf_id=c.id) }}">{{ c.name }}</a>
+              </h3>
+              <p class="muted">{{ c.date }} • {{ c.location }}</p>
+              <p class="desc">{{ c.description }}</p>
+              <div class="tags">
+                {% for t in c.tags %}
+                  <span class="tag">{{ t }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+    {% endif %}
+  </main>
+
+  <script>
+    const q = document.getElementById('q');
+    const cards = Array.from(document.querySelectorAll('.conf'));
+    q.addEventListener('input', () => {
+      const s = q.value.trim().toLowerCase();
+      cards.forEach(c => {
+        const hit = c.dataset.search.includes(s);
+        c.style.display = hit ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
