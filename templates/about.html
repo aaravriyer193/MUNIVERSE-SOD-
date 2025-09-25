@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>About — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a href="{{ url_for('conferences') }}">Conferences</a>
+      <a class="active" href="{{ url_for('about') }}">About</a>
+    </nav>
+  </header>
+
+  <main class="container narrow">
+    <article class="card pad">
+      <h1 class="page-title">About Muniverse</h1>
+      <p class="desc">
+        Muniverse is a community built by and for Model UN participants — to share moments,
+        discover conferences, and connect beyond debate.
+      </p>
+      <hr />
+      <h3>Contact</h3>
+      <ul class="bullets">
+        <li>Email: <code>(revealed soon)</code></li>
+      </ul>
+    </article>
+  </main>
+</body>
+</html>
