@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Explore — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Home</a>
+      <a class="active" href="{{ url_for('explore') }}">Explore</a>
+      <a href="{{ url_for('conferences') }}">Conferences</a>
+      <a href="{{ url_for('about') }}">About</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="search card">
+      <input id="q" placeholder="Search caption, @username, or #hashtag..." />
+    </div>
+
+    <section id="grid" class="masonry">
+      {% for post in posts %}
+        <a class="tile" href="{{ url_for('post', post_id=post.id) }}"
+           data-search="{{ post.caption|lower }} @{{ post.username|lower }}">
+          <img src="{{ url_for('static', filename=post.image) }}" alt="Post" loading="lazy" />
+          <div class="tile-overlay">
+            <span>@{{ post.username }}</span>
+          </div>
+        </a>
+      {% endfor %}
+    </section>
+
+    {% if posts|length == 0 %}
+      <div class="empty card">
+        <h3>No posts found</h3>
+        <p>Try adding a post first.</p>
+      </div>
+    {% endif %}
+  </main>
+
+  <script>
+    const q = document.getElementById('q');
+    const tiles = Array.from(document.querySelectorAll('.tile'));
+    q.addEventListener('input', () => {
+      const s = q.value.trim().toLowerCase();
+      tiles.forEach(t => {
+        const hit = t.dataset.search.includes(s);
+        t.style.display = hit ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
