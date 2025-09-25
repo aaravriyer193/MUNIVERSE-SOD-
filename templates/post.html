@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Post #{{ post.id }} — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a class="active" href="{{ url_for('feed') }}">Back to Feed</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <article class="card">
+      <div class="hero">
+        <img src="{{ url_for('static', filename=post.image) }}" alt="Post" />
+      </div>
+      <div class="pad">
+        <header class="post-head">
+          <div class="avatar-letter" data-letter="{{ post.username[0]|upper }}"></div>
+          <a class="username" href="{{ url_for('profile', username=post.username) }}">@{{ post.username }}</a>
+        </header>
+        <p class="caption">{{ post.caption }}</p>
+        <div class="meta">
+          <span>❤️ {{ post.likes }}</span>
+          <span>💬 {{ post.comments|length }} comments</span>
+        </div>
+
+        {% if post.comments and post.comments|length > 0 %}
+          <hr />
+          <ul class="comments">
+            {% for c in post.comments %}
+              <li><strong>@{{ c.user }}</strong> — {{ c.text }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    </article>
+  </main>
+</body>
+</html>
