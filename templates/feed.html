@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Feed — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a class="active" href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a href="{{ url_for('conferences') }}">Conferences</a>
+      <a href="{{ url_for('about') }}">About</a>
+      <a class="pill" href="{{ url_for('add_post') }}">+ Add Post</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% if posts|length == 0 %}
+      <div class="empty card">
+        <h3>No posts yet</h3>
+        <p>Be the first to share an update with the community.</p>
+        <a class="btn btn-primary" href="{{ url_for('add_post') }}">Create a Post</a>
+      </div>
+    {% else %}
+      <div class="feed-list">
+        {% for post in posts %}
+          <article class="post card">
+            <header class="post-head">
+              <div class="avatar-letter" data-letter="{{ post.username[0]|upper }}"></div>
+              <a class="username" href="{{ url_for('profile', username=post.username) }}">@{{ post.username }}</a>
+            </header>
+
+            <div class="post-media">
+              <img src="{{ url_for('static', filename=post.image) }}" alt="Post image by @{{ post.username }}" loading="lazy" />
+            </div>
+
+            <div class="post-body">
+              <p class="caption">{{ post.caption }}</p>
+              <div class="meta">
+                <span>❤️ {{ post.likes }}</span>
+                <a href="{{ url_for('post', post_id=post.id) }}">💬 {{ post.comments|length }} comments</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </main>
+</body>
+</html>
