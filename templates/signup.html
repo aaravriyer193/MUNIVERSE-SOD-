@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Signup — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+  </header>
+
+  <main class="container narrow">
+    <h2 class="section-title">Create your profile</h2>
+    <form class="card form" action="{{ url_for('signup') }}" method="POST" novalidate>
+      <div class="two-col">
+        <label>Full Name
+          <input required name="name" placeholder="e.g., Aanya Kapoor" />
+        </label>
+        <label>Username
+          <input required name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_\.\\-]{3,24}$" />
+          <small>3–24 chars, letters/numbers/._-</small>
+        </label>
+      </div>
+
+      <label>School / Institution
+        <input required name="school" placeholder="e.g., Horizon International School" />
+      </label>
+
+      <label>Short Bio
+        <textarea required name="bio" rows="3" placeholder="Delegate, council interests, awards..."></textarea>
+      </label>
+
+      <label>Profile image filename (from <code>static/assets/img/users/</code>)
+        <input required name="profile_pic" placeholder="e.g., aank.jpg" />
+        <small>Do not include path. The app saves as <code>img/users/&lt;username&gt;.jpg</code> on signup.</small>
+      </label>
+
+      <button class="btn btn-primary" type="submit">Join Muniverse</button>
+      <a class="btn btn-ghost" href="{{ url_for('feed') }}">Skip for now</a>
+    </form>
+  </main>
+</body>
+</html>
