@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>@{{ user.username }} — Profile — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a href="{{ url_for('conferences') }}">Conferences</a>
+      <a href="{{ url_for('about') }}">About</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="profile card">
+      <div class="p-header">
+        <img class="avatar-img" src="{{ url_for('static', filename=user.profile_pic) }}" alt="{{ user.username }}" />
+        <div class="p-meta">
+          <h1 class="page-title">@{{ user.username }}</h1>
+          <p class="muted">{{ user.name }} • {{ user.school }}</p>
+          <p class="desc">{{ user.bio }}</p>
+          {% if user.attendingConferences and user.attendingConferences|length > 0 %}
+            <div class="tags">
+              {% for cid in user.attendingConferences %}
+                <a class="tag" href="{{ url_for('conference', conf_id=cid) }}">{{ cid }}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="container">
+      <h3 class="section-title">Posts</h3>
+      {% if posts|length == 0 %}
+        <div class="empty card">
+          <p>No posts by @{{ user.username }} yet.</p>
+        </div>
+      {% else %}
+        <div class="grid">
+          {% for post in posts %}
+            <a class="card hoverable" href="{{ url_for('post', post_id=post.id) }}">
+              <img class="cover" src="{{ url_for('static', filename=post.image) }}" alt="Post image" loading="lazy" />
+              <div class="pad-sm">
+                <p class="caption clamp-2">{{ post.caption }}</p>
+                <div class="meta">
+                  <span>❤️ {{ post.likes }}</span>
+                  <span>💬 {{ post.comments|length }}</span>
+                </div>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>
