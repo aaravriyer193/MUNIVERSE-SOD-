@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "name": "Aarav Iyer",
+    "username": "Aaraviyer193",
+    "school": "Gems Modern Academy",
+    "bio": "Muniverse maker",
+    "profile_pic": "img/users/Aaraviyer193.png",
+    "password_hash": "scrypt:32768:8:1$vEUtd2TEff0wcOrK$29bfa49ea146347af029b1f7621239f3ec0408a2289559dd29f02c87b8a9818c7ce33f8d251416d1f76463daaab2e7438dcb73be335ade51e3b47cb6343e0e68",
+    "attendingConferences": [],
+    "followers": [],
+    "following": []
+  }
+]

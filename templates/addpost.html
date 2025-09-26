@@ -11,34 +11,109 @@
     <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
     <nav class="nav">
       <a class="active" href="{{ url_for('feed') }}">Back to Feed</a>
+      {% if current_user %}
+        <a href="{{ url_for('profile', username=current_user.username) }}" class="avatar-link" title="@{{ current_user.username }}">
+          <img class="avatar-circle" src="{{ url_for('static', filename=current_user.profile_pic) }}" alt="{{ current_user.username }}">
+        </a>
+        <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Sign in</a>
+      {% endif %}
     </nav>
   </header>
 
   <main class="container narrow">
     <h2 class="section-title">Create a Post</h2>
 
-    <!-- IMPORTANT: enctype for file uploads -->
-    <form class="card form" action="{{ url_for('addpost') }}" method="POST" enctype="multipart/form-data">
-      <label>Username
-        <input required name="username" placeholder="your username" />
-      </label>
+    {% if not current_user %}
+      <div class="card empty">
+        <p>You need to be signed in to post.</p>
+        <a class="btn btn-primary" href="{{ url_for('login') }}">Sign in</a>
+      </div>
+    {% else %}
+      <!-- IMPORTANT: enctype for file uploads -->
+      <form id="postForm" class="card form" action="{{ url_for('addpost') }}" method="POST" enctype="multipart/form-data">
+        <div class="two-col">
+          <label>Posting as
+            <input value="@{{ current_user.username }}" disabled />
+            <small>Your username is taken from your session.</small>
+          </label>
+        </div>
 
-      <label>Caption
-        <textarea required name="caption" rows="3" placeholder="Write your update..."></textarea>
-      </label>
+        <label>Caption
+          <textarea required name="caption" rows="3" placeholder="Write your update..."></textarea>
+        </label>
 
-      <label>Upload image
-        <input type="file" name="image_file" accept="image/*" required />
-        <small>Saved to <code>static/img/posts/</code>. Stored as <code>img/posts/&lt;filename&gt;</code>.</small>
-      </label>
+        <label>Upload image
+          <input id="imageFile" type="file" name="image_file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" required />
+          <small>Saved to <code>static/img/posts/</code> and stored as <code>img/posts/&lt;filename&gt;</code>.</small>
+        </label>
 
-      <!-- Optional fallback if you prefer typing a filename instead of uploading -->
-      <!-- <label>OR image filename (already in static/img/posts/)
-        <input name="image" placeholder="e.g., ecosoc_draft.jpg" />
-      </label> -->
+        <!-- Live preview -->
+        <div id="previewWrap" class="card" style="display:none; padding:10px;">
+          <img id="previewImg" alt="Image preview" style="width:100%; height:auto; display:block; border-radius:10px;" />
+          <small id="previewMeta" class="muted"></small>
+        </div>
 
-      <button class="btn btn-primary" type="submit">Publish</button>
-    </form>
+        <button class="btn btn-primary" type="submit">Publish</button>
+      </form>
+    {% endif %}
   </main>
+
+  {% if current_user %}
+  <script>
+    (function () {
+      const form = document.getElementById('postForm');
+      const input = document.getElementById('imageFile');
+      const previewWrap = document.getElementById('previewWrap');
+      const previewImg  = document.getElementById('previewImg');
+      const previewMeta = document.getElementById('previewMeta');
+
+      const ALLOWED = ['png','jpg','jpeg','gif','webp'];
+      const MAX_MB = 15;
+
+      if (input) {
+        input.addEventListener('change', () => {
+          const f = input.files && input.files[0];
+          if (!f) { previewWrap.style.display = 'none'; return; }
+
+          const ext = (f.name.split('.').pop() || '').toLowerCase();
+          const okType = ALLOWED.includes(ext);
+          const okSize = f.size <= MAX_MB * 1024 * 1024;
+
+          if (!okType) {
+            alert('Invalid file type. Allowed: ' + ALLOWED.join(', '));
+            input.value = '';
+            previewWrap.style.display = 'none';
+            return;
+          }
+          if (!okSize) {
+            alert('File too large. Max ' + MAX_MB + 'MB.');
+            input.value = '';
+            previewWrap.style.display = 'none';
+            return;
+          }
+
+          const r = new FileReader();
+          r.onload = e => {
+            previewImg.src = e.target.result;
+            previewWrap.style.display = '';
+            previewMeta.textContent = `${f.name} • ${(f.size/1024/1024).toFixed(2)} MB`;
+          };
+          r.readAsDataURL(f);
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          if (!input.files || !input.files[0]) {
+            e.preventDefault();
+            alert('Please choose an image to upload.');
+          }
+        });
+      }
+    })();
+  </script>
+  {% endif %}
 </body>
 </html>

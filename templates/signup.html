@@ -13,13 +13,14 @@
 
   <main class="container narrow">
     <h2 class="section-title">Create your profile</h2>
-    <form class="card form" action="{{ url_for('signup') }}" method="POST" novalidate>
+
+    <form class="card form" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data" novalidate>
       <div class="two-col">
         <label>Full Name
           <input required name="name" placeholder="e.g., Aanya Kapoor" />
         </label>
         <label>Username
-          <input required name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_\.\\-]{3,24}$" />
+          <input required name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_.\\-]{3,24}$" />
           <small>3–24 chars, letters/numbers/._-</small>
         </label>
       </div>
@@ -32,8 +33,21 @@
         <textarea required name="bio" rows="3" placeholder="Delegate, council interests, awards..."></textarea>
       </label>
 
+      <div class="two-col">
+        <label>Password
+          <input name="password" type="password" required minlength="6" placeholder="min 6 characters">
+        </label>
+        <label>Confirm Password
+          <input name="password_confirm" type="password" required minlength="6" placeholder="retype password">
+        </label>
+      </div>
+
+      <label>Profile photo (required)
+        <input type="file" name="profile_photo" accept="image/*" required />
+        <small>Saved to <code>static/img/users/</code> as your username filename.</small>
+      </label>
+
       <button class="btn btn-primary" type="submit">Join Muniverse</button>
-      <a class="btn btn-ghost" href="{{ url_for('feed') }}">Skip for now</a>
     </form>
   </main>
 </body>

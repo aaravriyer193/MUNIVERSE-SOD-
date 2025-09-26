@@ -10,11 +10,20 @@
   <header class="topbar">
     <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
     <nav class="nav">
-      <a class="active" href="{{ url_for('feed') }}">Home</a>
+      <a href="{{ url_for('feed') }}">Home</a>
       <a href="{{ url_for('explore') }}">Explore</a>
       <a href="{{ url_for('conferences') }}">Conferences</a>
       <a href="{{ url_for('about') }}">About</a>
-      <a class="pill" href="{{ url_for('addpost') }}">+ Add Post</a>
+
+      {% if current_user %}
+        <a href="{{ url_for('profile', username=current_user.username) }}" class="avatar-link" title="@{{ current_user.username }}">
+          <img class="avatar-circle" src="{{ url_for('static', filename=current_user.profile_pic) }}" alt="{{ current_user.username }}">
+        </a>
+        <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Sign in</a>
+        <a class="btn btn-primary" href="{{ url_for('signup') }}">Create profile</a>
+      {% endif %}
     </nav>
   </header>
 

@@ -14,6 +14,16 @@
       <a href="{{ url_for('explore') }}">Explore</a>
       <a href="{{ url_for('conferences') }}">Conferences</a>
       <a href="{{ url_for('about') }}">About</a>
+
+      {% if current_user %}
+        <a href="{{ url_for('profile', username=current_user.username) }}" class="avatar-link" title="@{{ current_user.username }}">
+          <img class="avatar-circle" src="{{ url_for('static', filename=current_user.profile_pic) }}" alt="{{ current_user.username }}">
+        </a>
+        <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Sign in</a>
+        <a class="btn btn-primary" href="{{ url_for('signup') }}">Create profile</a>
+      {% endif %}
     </nav>
   </header>
 
@@ -25,8 +35,29 @@
           <h1 class="page-title">@{{ user.username }}</h1>
           <p class="muted">{{ user.name }} • {{ user.school }}</p>
           <p class="desc">{{ user.bio }}</p>
+
+          <div class="meta" style="display:flex; gap:14px; margin:8px 0;">
+            <span><b>{{ (user.followers|length) if user.followers else 0 }}</b> Followers</span>
+            <span><b>{{ (user.following|length) if user.following else 0 }}</b> Following</span>
+          </div>
+
+          {% if current_user %}
+            {% if current_user.username == user.username %}
+              <div class="actions">
+                <a class="btn" href="{{ url_for('settings_password') }}">Change Password</a>
+                <a class="btn btn-primary" href="{{ url_for('addpost') }}">Add Post</a>
+              </div>
+            {% else %}
+              <form id="followForm" class="actions" method="post" action="{{ url_for('follow', username=user.username) }}">
+                <button id="followBtn" class="btn btn-primary" type="submit">
+                  {% if current_user.username in (user.followers or []) %}Following{% else %}+ Follow{% endif %}
+                </button>
+              </form>
+            {% endif %}
+          {% endif %}
+
           {% if user.attendingConferences and user.attendingConferences|length > 0 %}
-            <div class="tags">
+            <div class="tags" style="margin-top:8px;">
               {% for cid in user.attendingConferences %}
                 <a class="tag" href="{{ url_for('conference', conf_id=cid) }}">{{ cid }}</a>
               {% endfor %}
@@ -60,5 +91,31 @@
       {% endif %}
     </section>
   </main>
+
+  {% if current_user and current_user.username != user.username %}
+  <script>
+    // Progressive enhancement: AJAX follow/unfollow (optional; form POST still works)
+    const form = document.getElementById('followForm');
+    const btn  = document.getElementById('followBtn');
+    if (form && btn) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.disabled = true;
+        try {
+          const res = await fetch(form.action, { method: 'POST' });
+          const data = await res.json();
+          if (data.ok) {
+            btn.textContent = (data.action === 'followed') ? 'Following' : '+ Follow';
+            // Optionally update counts in DOM:
+            // find the first <b> (followers) and update textContent = data.followers
+            const b = document.querySelector('.meta b');
+            if (b) b.textContent = data.followers;
+          }
+        } catch (err) { console.error(err); }
+        finally { btn.disabled = false; }
+      });
+    }
+  </script>
+  {% endif %}
 </body>
 </html>
