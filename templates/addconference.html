@@ -16,14 +16,16 @@
 
   <main class="container narrow">
     <h2 class="section-title">Create a Conference</h2>
-    <form class="card form" action="{{ url_for('add_conference') }}" method="POST">
+
+    <!-- IMPORTANT: enctype for file uploads -->
+    <form id="confForm" class="card form" action="{{ url_for('addconference') }}" method="POST" enctype="multipart/form-data">
       <div class="two-col">
         <label>Conference ID
-          <input required name="id" placeholder="e.g., sodmun2025" pattern="^[a-z0-9\\-]{3,40}$" />
+          <input required name="id" placeholder="e.g., sodmun2025" pattern="^[a-z0-9\-]{3,40}$" />
           <small>Lowercase letters, numbers, dash</small>
         </label>
         <label>Name
-          <input required name="name" placeholder="e.g., School of Diplomacy MUN 2025" />
+          <input required name="name" placeholder="e.g., Summit of Diplomacy MUN 2025" />
         </label>
       </div>
 
@@ -40,17 +42,79 @@
         <textarea required name="description" rows="3" placeholder="Key councils, highlights, etc."></textarea>
       </label>
 
-      <label>Banner filename (from <code>static/assets/img/conferences/</code>)
-        <input required name="banner" placeholder="e.g., sodmun2025.jpg" />
-        <small>The app stores as <code>img/conferences/&lt;filename&gt;</code>.</small>
+      <!-- Must be name="banner_file" to match app.py -->
+      <label>Upload banner
+        <input id="bannerFile" type="file" name="banner_file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" required />
+        <small>Saved to <code>static/img/conferences/</code> and stored as <code>img/conferences/&lt;filename&gt;</code>.</small>
       </label>
 
-      <label>Tags (comma-separated, include # if you want)
+      <!-- Live preview -->
+      <div id="previewWrap" class="card" style="display:none; padding:10px;">
+        <div class="hero" style="border-radius:8px; overflow:hidden;">
+          <img id="previewImg" alt="Banner preview" style="width:100%; height:auto; display:block;" />
+        </div>
+        <small id="previewMeta" class="muted"></small>
+      </div>
+
+      <label>Tags (comma-separated)
         <input name="tags" placeholder="#GA, #UNSC, #ECOSOC" />
       </label>
 
       <button class="btn btn-primary" type="submit">Create</button>
     </form>
   </main>
+
+  <script>
+    // Simple client-side checks to prevent bad uploads and show preview.
+    (function () {
+      const form = document.getElementById('confForm');
+      const input = document.getElementById('bannerFile');
+      const previewWrap = document.getElementById('previewWrap');
+      const previewImg = document.getElementById('previewImg');
+      const previewMeta = document.getElementById('previewMeta');
+
+      const ALLOWED = ['png','jpg','jpeg','gif','webp'];
+      const MAX_MB = 10;
+
+      input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        if (!f) { previewWrap.style.display = 'none'; return; }
+
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        const okType = ALLOWED.includes(ext);
+        const okSize = f.size <= MAX_MB * 1024 * 1024;
+
+        if (!okType) {
+          alert('Invalid file type. Allowed: ' + ALLOWED.join(', '));
+          input.value = '';
+          previewWrap.style.display = 'none';
+          return;
+        }
+        if (!okSize) {
+          alert('File too large. Max ' + MAX_MB + 'MB.');
+          input.value = '';
+          previewWrap.style.display = 'none';
+          return;
+        }
+
+        // Preview
+        const reader = new FileReader();
+        reader.onload = e => {
+          previewImg.src = e.target.result;
+          previewWrap.style.display = '';
+          previewMeta.textContent = `${f.name} • ${(f.size/1024/1024).toFixed(2)} MB`;
+        };
+        reader.readAsDataURL(f);
+      });
+
+      form.addEventListener('submit', (e) => {
+        // Ensure a file is still selected before submit
+        if (!input.files || !input.files[0]) {
+          e.preventDefault();
+          alert('Please choose a banner image.');
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -32,11 +32,6 @@
         <textarea required name="bio" rows="3" placeholder="Delegate, council interests, awards..."></textarea>
       </label>
 
-      <label>Profile image filename (from <code>static/assets/img/users/</code>)
-        <input required name="profile_pic" placeholder="e.g., aank.jpg" />
-        <small>Do not include path. The app saves as <code>img/users/&lt;username&gt;.jpg</code> on signup.</small>
-      </label>
-
       <button class="btn btn-primary" type="submit">Join Muniverse</button>
       <a class="btn btn-ghost" href="{{ url_for('feed') }}">Skip for now</a>
     </form>

@@ -14,7 +14,7 @@
       <a href="{{ url_for('explore') }}">Explore</a>
       <a class="active" href="{{ url_for('conferences') }}">Conferences</a>
       <a href="{{ url_for('about') }}">About</a>
-      <a class="pill" href="{{ url_for('add_conference') }}">+ Add Conference</a>
+      <a class="pill" href="{{ url_for('addconference') }}">+ Add Conference</a>
     </nav>
   </header>
 
@@ -27,27 +27,37 @@
       <div class="empty card">
         <h3>No conferences listed</h3>
         <p>Add one to get started.</p>
-        <a class="btn btn-primary" href="{{ url_for('add_conference') }}">Create Conference</a>
+        <a class="btn btn-primary" href="{{ url_for('addconference') }}">Create Conference</a>
       </div>
     {% else %}
       <section id="confGrid" class="grid">
         {% for c in conferences %}
-          <article class="conf card"
-                   data-search="{{ (c.name ~ ' ' ~ c.location ~ ' ' ~ (c.tags|join(' ')))|lower }}">
+          {% set tags_list = c.tags|default([]) %}
+          {% set search_blob = (c.name ~ ' ' ~ c.location ~ ' ' ~ (tags_list|join(' ')))|lower %}
+          <article class="conf card" data-search="{{ search_blob }}">
             <a class="conf-media" href="{{ url_for('conference', conf_id=c.id) }}">
-              <img src="{{ url_for('static', filename=c.banner) }}" alt="{{ c.name }}" loading="lazy" />
+              {% if c.banner %}
+                <img src="{{ url_for('static', filename=c.banner) }}" alt="{{ c.name }}" loading="lazy" />
+              {% else %}
+                <!-- graceful fallback if no banner (no broken image icons) -->
+                <div style="width:100%;aspect-ratio:16/9;display:grid;place-items:center;background:#111;border-bottom:1px solid #262626;">
+                  <span class="muted" style="padding:8px 12px;">{{ c.name }}</span>
+                </div>
+              {% endif %}
             </a>
             <div class="conf-body">
               <h3 class="conf-title">
                 <a href="{{ url_for('conference', conf_id=c.id) }}">{{ c.name }}</a>
               </h3>
               <p class="muted">{{ c.date }} • {{ c.location }}</p>
-              <p class="desc">{{ c.description }}</p>
-              <div class="tags">
-                {% for t in c.tags %}
-                  <span class="tag">{{ t }}</span>
-                {% endfor %}
-              </div>
+              <p class="desc">{{ c.description|default('') }}</p>
+              {% if tags_list and tags_list|length > 0 %}
+                <div class="tags">
+                  {% for t in tags_list %}
+                    <span class="tag">{{ t }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
           </article>
         {% endfor %}
@@ -56,15 +66,19 @@
   </main>
 
   <script>
-    const q = document.getElementById('q');
-    const cards = Array.from(document.querySelectorAll('.conf'));
-    q.addEventListener('input', () => {
-      const s = q.value.trim().toLowerCase();
-      cards.forEach(c => {
-        const hit = c.dataset.search.includes(s);
-        c.style.display = hit ? '' : 'none';
+    (function () {
+      const q = document.getElementById('q');
+      const cards = Array.from(document.querySelectorAll('.conf'));
+      if (!q) return;
+
+      q.addEventListener('input', () => {
+        const s = (q.value || '').trim().toLowerCase();
+        cards.forEach(c => {
+          const hit = (c.dataset.search || '').includes(s);
+          c.style.display = hit ? '' : 'none';
+        });
       });
-    });
+    })();
   </script>
 </body>
 </html>

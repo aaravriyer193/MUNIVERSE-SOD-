@@ -16,17 +16,26 @@
 
   <main class="container narrow">
     <h2 class="section-title">Create a Post</h2>
-    <form class="card form" action="{{ url_for('add_post') }}" method="POST">
+
+    <!-- IMPORTANT: enctype for file uploads -->
+    <form class="card form" action="{{ url_for('addpost') }}" method="POST" enctype="multipart/form-data">
       <label>Username
-        <input required name="username" placeholder="your username (must exist in users.json)" />
+        <input required name="username" placeholder="your username" />
       </label>
+
       <label>Caption
         <textarea required name="caption" rows="3" placeholder="Write your update..."></textarea>
       </label>
-      <label>Image filename (from <code>static/assets/img/posts/</code>)
-        <input required name="image" placeholder="e.g., ecosoc_draft.jpg" />
-        <small>The app stores as <code>img/posts/&lt;filename&gt;</code>.</small>
+
+      <label>Upload image
+        <input type="file" name="image_file" accept="image/*" required />
+        <small>Saved to <code>static/img/posts/</code>. Stored as <code>img/posts/&lt;filename&gt;</code>.</small>
       </label>
+
+      <!-- Optional fallback if you prefer typing a filename instead of uploading -->
+      <!-- <label>OR image filename (already in static/img/posts/)
+        <input name="image" placeholder="e.g., ecosoc_draft.jpg" />
+      </label> -->
 
       <button class="btn btn-primary" type="submit">Publish</button>
     </form>

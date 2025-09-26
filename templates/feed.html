@@ -14,7 +14,7 @@
       <a href="{{ url_for('explore') }}">Explore</a>
       <a href="{{ url_for('conferences') }}">Conferences</a>
       <a href="{{ url_for('about') }}">About</a>
-      <a class="pill" href="{{ url_for('add_post') }}">+ Add Post</a>
+      <a class="pill" href="{{ url_for('addpost') }}">+ Add Post</a>
     </nav>
   </header>
 
@@ -23,7 +23,7 @@
       <div class="empty card">
         <h3>No posts yet</h3>
         <p>Be the first to share an update with the community.</p>
-        <a class="btn btn-primary" href="{{ url_for('add_post') }}">Create a Post</a>
+        <a class="btn btn-primary" href="{{ url_for('addpost') }}">Create a Post</a>
       </div>
     {% else %}
       <div class="feed-list">
