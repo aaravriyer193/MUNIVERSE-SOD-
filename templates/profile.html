@@ -44,7 +44,7 @@
           {% if current_user %}
             {% if current_user.username == user.username %}
               <div class="actions">
-                <a class="btn" href="{{ url_for('settings_password') }}">Change Password</a>
+                <a class="btn" href="{{ url_for('addconference') }}">Make a Conference</a>
                 <a class="btn btn-primary" href="{{ url_for('addpost') }}">Add Post</a>
               </div>
             {% else %}

@@ -19,27 +19,105 @@
       <div class="hero">
         <img src="{{ url_for('static', filename=post.image) }}" alt="Post" />
       </div>
+
       <div class="pad">
         <header class="post-head">
           <div class="avatar-letter" data-letter="{{ post.username[0]|upper }}"></div>
           <a class="username" href="{{ url_for('profile', username=post.username) }}">@{{ post.username }}</a>
         </header>
+
+        <div class="meta" style="margin:8px 0;">
+          <button class="like-btn" data-post="{{ post.id }}">
+            {% if current_user and current_user.username in (post.liked_by or []) %}
+              ❤️ Liked
+            {% else %}
+              🤍 Like
+            {% endif %}
+          </button>
+          <span class="like-count" data-post="{{ post.id }}">{{ post.likes or 0 }}</span>
+        </div>
+
         <p class="caption">{{ post.caption }}</p>
+
         <div class="meta">
-          <span>❤️ {{ post.likes }}</span>
-          <span>💬 {{ post.comments|length }} comments</span>
+          <span>💬 <span id="cCount">{{ (post.comments|length) if post.comments else 0 }}</span> comments</span>
         </div>
 
         {% if post.comments and post.comments|length > 0 %}
           <hr />
-          <ul class="comments">
-            {% for c in post.comments %}
-              <li><strong>@{{ c.user }}</strong> — {{ c.text }}</li>
-            {% endfor %}
-          </ul>
+        {% endif %}
+
+        <ul class="comments" id="commentList">
+          {% for c in post.comments or [] %}
+            <li>
+              <strong>@{{ c.username }}</strong>
+              <small class="muted">{{ c.ts }}</small>
+              <div>{{ c.text }}</div>
+            </li>
+          {% endfor %}
+        </ul>
+
+        {% if current_user %}
+          <form id="commentForm" class="row" action="{{ url_for('comment_post', post_id=post.id) }}" method="POST">
+            <input name="text" id="cText" placeholder="Write a comment…" maxlength="1000" required />
+            <button class="btn btn-primary" type="submit">Post</button>
+          </form>
+        {% else %}
+          <p class="muted">Sign in to comment.</p>
         {% endif %}
       </div>
     </article>
   </main>
+
+  <script>
+  (function(){
+    // Like
+    document.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const id = btn.dataset.post;
+        const res = await fetch(`/post/${id}/like`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          document.querySelector(`.like-count[data-post="${id}"]`).textContent = data.likes;
+          btn.textContent = data.liked ? '❤️ Liked' : '🤍 Like';
+        } else if (data.error === 'auth') {
+          location.href = '/login?next=' + encodeURIComponent(location.pathname);
+        }
+      });
+    });
+
+    // Comment
+    const form = document.getElementById('commentForm');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('cText');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const res = await fetch(form.action, {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({ text })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>@${data.comment.username}</strong>
+                        <small class="muted">${data.comment.ts}</small>
+                        <div></div>`;
+        li.querySelector('div').textContent = data.comment.text;
+        document.getElementById('commentList').appendChild(li);
+
+        input.value = '';
+        const cCount = document.getElementById('cCount');
+        if (cCount) cCount.textContent = data.count;
+      } else if (data.error === 'auth') {
+        location.href = '/login?next=' + encodeURIComponent(location.pathname);
+      }
+    });
+  })();
+  </script>
 </body>
 </html>

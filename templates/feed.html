@@ -32,7 +32,11 @@
       <div class="empty card">
         <h3>No posts yet</h3>
         <p>Be the first to share an update with the community.</p>
-        <a class="btn btn-primary" href="{{ url_for('addpost') }}">Create a Post</a>
+        {% if current_user %}
+          <a class="btn btn-primary" href="{{ url_for('addpost') }}">Create a Post</a>
+        {% else %}
+          <a class="btn btn-primary" href="{{ url_for('login') }}">Sign in to post</a>
+        {% endif %}
       </div>
     {% else %}
       <div class="feed-list">
@@ -50,8 +54,15 @@
             <div class="post-body">
               <p class="caption">{{ post.caption }}</p>
               <div class="meta">
-                <span>❤️ {{ post.likes }}</span>
-                <a href="{{ url_for('post', post_id=post.id) }}">💬 {{ post.comments|length }} comments</a>
+                <button class="like-btn" data-post="{{ post.id }}">
+                  {% if current_user and current_user.username in (post.liked_by or []) %}
+                    ❤️ Liked
+                  {% else %}
+                    🤍 Like
+                  {% endif %}
+                </button>
+                <span class="like-count" data-post="{{ post.id }}">{{ post.likes or 0 }}</span>
+                <a href="{{ url_for('post', post_id=post.id) }}">💬 {{ (post.comments|length) if post.comments else 0 }} comments</a>
               </div>
             </div>
           </article>
@@ -59,5 +70,27 @@
       </div>
     {% endif %}
   </main>
+
+  <script>
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const id = btn.dataset.post;
+      try {
+        const res = await fetch(`/post/${id}/like`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          const countEl = document.querySelector(`.like-count[data-post="${id}"]`);
+          if (countEl) countEl.textContent = data.likes;
+          btn.textContent = data.liked ? '❤️ Liked' : '🤍 Like';
+        } else if (data.error === 'auth') {
+          location.href = '/login?next=' + encodeURIComponent(location.pathname);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  });
+  </script>
 </body>
 </html>

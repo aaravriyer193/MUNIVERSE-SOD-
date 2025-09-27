@@ -4,6 +4,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timezone
 import json, os, functools
 
 # -----------------------------------------------------------------------------
@@ -11,6 +12,7 @@ import json, os, functools
 # -----------------------------------------------------------------------------
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("MUNIVERSE_SECRET", "dev-change-me")
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB uploads
 
 # -----------------------------------------------------------------------------
 # Data paths
@@ -61,6 +63,23 @@ def save_user(users, user):
     else:
         users.append(user)
     save_json(USERS_FILE, users)
+
+# --- posts helpers ---
+def normalize_post(post: dict) -> dict:
+    post.setdefault("likes", 0)
+    post.setdefault("liked_by", [])
+    post.setdefault("comments", [])
+    return post
+
+def get_post_by_id(post_id: int):
+    posts = load_json(POSTS_FILE)
+    for p in posts:
+        if p.get("id") == post_id:
+            return posts, p
+    return posts, None
+
+def save_posts(posts):
+    save_json(POSTS_FILE, posts)
 
 # -----------------------------------------------------------------------------
 # Auth helpers
@@ -134,20 +153,20 @@ def signup():
             flash("Passwords do not match.", "error")
             return redirect(url_for("signup"))
 
-        # profile photo (required)
+        # OPTIONAL profile photo
+        photo_path = (request.form.get("profile_pic") or "").strip()
         file = request.files.get("profile_photo")
-        if not file or not file.filename:
-            flash("Please upload a profile photo.", "error")
-            return redirect(url_for("signup"))
-        if not allowed_file(file.filename):
-            flash("Invalid profile photo type.", "error")
-            return redirect(url_for("signup"))
-
-        filename = secure_filename(file.filename)
-        ext = filename.rsplit(".", 1)[1].lower()
-        final_name = f"{username}.{ext}"
-        file.save(os.path.join(USER_UPLOAD_DIR, final_name))
-        photo_path = f"img/users/{final_name}"
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Invalid profile photo type.", "error")
+                return redirect(url_for("signup"))
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit(".", 1)[1].lower()
+            final_name = f"{username}.{ext}"
+            file.save(os.path.join(USER_UPLOAD_DIR, final_name))
+            photo_path = f"img/users/{final_name}"
+        if not photo_path:
+            photo_path = "img/users/default.png"  # make sure this exists
 
         new_user = {
             "name": name,
@@ -157,8 +176,8 @@ def signup():
             "profile_pic": photo_path,
             "password_hash": generate_password_hash(pw),
             "attendingConferences": [],
-            "followers": [],   # list of usernames following this user
-            "following": []    # list of usernames this user follows
+            "followers": [],
+            "following": []
         }
         users.append(new_user)
         save_json(USERS_FILE, users)
@@ -189,26 +208,25 @@ def settings_password():
         return redirect(url_for("profile", username=me["username"]))
     return render_template("settings_password.html", user=me)
 
-# -------------------- Feed / Posts --------------------
+# -------------------- Explore / Feed / Post pages --------------------
 @app.route("/explore")
 def explore():
-    """Simple explore page with optional ?q= search."""
     posts = load_json(POSTS_FILE)
     q = (request.args.get("q") or "").strip().lower()
-
     if q:
         def hit(p):
             cap = (p.get("caption") or "").lower()
             user = (p.get("username") or "").lower()
             return q in cap or q in user
         posts = [p for p in posts if hit(p)]
-
-    # newest first
     posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
     return render_template("explore.html", posts=posts, q=q)
+
 @app.route("/feed")
 def feed():
     posts = load_json(POSTS_FILE)
+    for p in posts:
+        normalize_post(p)
     posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
     return render_template("feed.html", posts=posts)
 
@@ -218,8 +236,10 @@ def post(post_id):
     item = next((p for p in posts if p.get("id") == post_id), None)
     if not item:
         abort(404, "Post not found")
+    normalize_post(item)
     return render_template("post.html", post=item)
 
+# -------------------- Add Post --------------------
 @app.route("/addpost", methods=["GET", "POST"])
 @login_required
 def addpost():
@@ -245,6 +265,7 @@ def addpost():
             "caption": caption,
             "image": image_path,
             "likes": 0,
+            "liked_by": [],
             "comments": []
         }
         posts.append(new_post)
@@ -252,6 +273,52 @@ def addpost():
         return redirect(url_for("feed"))
 
     return render_template("addpost.html")
+
+# -------------------- Likes & Comments APIs --------------------
+@app.route("/post/<int:post_id>/like", methods=["POST"])
+@login_required
+def like_post(post_id):
+    user = get_current_user()
+    posts, post = get_post_by_id(post_id)
+    if not post:
+        return jsonify({"ok": False, "error": "post_not_found"}), 404
+
+    post = normalize_post(post)
+    u = user["username"]
+    if u in post["liked_by"]:
+        post["liked_by"].remove(u)
+    else:
+        post["liked_by"].append(u)
+    post["likes"] = len(post["liked_by"])
+    save_posts(posts)
+    return jsonify({"ok": True, "liked": (u in post["liked_by"]), "likes": post["likes"]})
+
+@app.route("/post/<int:post_id>/comment", methods=["POST"])
+@login_required
+def comment_post(post_id):
+    user = get_current_user()
+    text = (request.form.get("text") or "").strip()
+    if not text:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    if len(text) > 1000:
+        return jsonify({"ok": False, "error": "too_long"}), 400
+
+    posts, post = get_post_by_id(post_id)
+    if not post:
+        return jsonify({"ok": False, "error": "post_not_found"}), 404
+
+    post = normalize_post(post)
+    new_id = (post["comments"][-1]["id"] + 1) if post["comments"] else 1
+    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    post["comments"].append({
+        "id": new_id,
+        "username": user["username"],
+        "text": text,
+        "ts": ts
+    })
+    save_posts(posts)
+    return jsonify({"ok": True, "comment": {"id": new_id, "username": user["username"], "text": text, "ts": ts}, "count": len(post["comments"])})
 
 # -------------------- Conferences --------------------
 @app.route("/conferences")
@@ -313,18 +380,15 @@ def follow(username):
     if not other:
         return jsonify({"ok": False, "error": "user_not_found"}), 404
 
-    # initialize fields if missing (for older data)
     me.setdefault("following", [])
     other.setdefault("followers", [])
 
     if username in me["following"]:
-        # UNFOLLOW
         me["following"].remove(username)
         if me_name in other["followers"]:
             other["followers"].remove(me_name)
         action = "unfollowed"
     else:
-        # FOLLOW
         me["following"].append(username)
         if me_name not in other["followers"]:
             other["followers"].append(me_name)
@@ -350,7 +414,7 @@ def profile(username):
         abort(404, "User not found")
     user.setdefault("followers", [])
     user.setdefault("following", [])
-    user_posts = [p for p in posts if p.get("username") == username]
+    user_posts = [normalize_post(p) for p in posts if p.get("username") == username]
     return render_template("profile.html", user=user, posts=user_posts)
 
 # -------------------- About --------------------
@@ -377,6 +441,13 @@ def _uploads():
     try: info["conference_files"] = sorted(os.listdir(CONF_UPLOAD_DIR))
     except Exception as e: info["conference_files"] = [f"<error: {e}>"]
     return info
+
+# -------------------- 404 handler --------------------
+@app.errorhandler(404)
+def not_found(e):
+    # You can log e.description if you want
+    return render_template("404.html"), 404
+
 
 # -----------------------------------------------------------------------------
 # Run
