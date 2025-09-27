@@ -2,29 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>404 — Point of Order! — Muniverse</title>
+  <title>404 — Muniverse</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
   <style>
-    /* Extras just for this page */
-    .oops-wrap{max-width:980px;margin:40px auto;padding:0 16px;}
-    .oops-card{border-radius:16px;background:#0e0f14;border:1px solid #1f2130;box-shadow:0 10px 30px rgba(0,0,0,.4);overflow:hidden}
-    .oops-head{padding:24px 24px 0}
-    .oops-title{font-size:clamp(24px,3vw,34px);margin:0 0 8px}
-    .oops-sub{color:#b8bbc7;margin:0 0 16px}
-    .oops-actions{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 24px}
-    .oops-actions .btn{padding:10px 14px;border-radius:10px;border:1px solid #2a2a32;background:#12131a}
-    .btn-primary{background:#ff6a00;border-color:#ff6a00;color:#111}
-    .btn-primary:hover{filter:brightness(1.1)}
-    .game-wrap{padding:0 24px 24px}
-    .hud{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px;color:#b8bbc7}
-    .hud small{opacity:.8}
-    canvas{width:100%;max-width:700px;aspect-ratio:16/9;background:radial-gradient(1200px 600px at 50% -20%,rgba(255,106,0,.22),transparent 60%),#0b0c12;border:1px solid #1f2130;border-radius:14px;display:block;margin:0 auto}
-    .kbd{font:600 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;background:#1b1d2b;border:1px solid #2a2c3d;border-radius:6px;padding:2px 6px;margin:0 1px;color:#e6eafd}
-    .legend{font-size:14px;color:#9aa0ad}
-    .pill{border:1px solid #2a2a32;border-radius:999px;padding:6px 10px}
-    .score{font-weight:700}
-    .muted{opacity:.8}
+    .hero404{
+      max-width:1000px;margin:48px auto;padding:0 16px;text-align:center
+    }
+    .hero404 .giant{
+      font-family: "Kanit", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin: 0;
+      line-height: .9;
+      font-size: clamp(96px, 18vw, 220px);
+      color: #ff6a00; /* big orange */
+      text-shadow: 0 12px 40px rgba(255,106,0,.25);
+    }
+    .hero404 .tagline{
+      margin:.25rem 0 1rem;color:#b8bbc7;font-size:clamp(16px,2.4vw,20px)
+    }
+    .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+    .btn{padding:12px 16px;border-radius:12px;border:1px solid #2a2a32;background:#14151b;color:#fff;text-decoration:none}
+    .btn-primary{background:#ff6a00;border-color:#ff6a00;color:#0e0f14;font-weight:700}
+    .btn:hover{filter:brightness(1.06)}
+    .mini-note{margin-top:10px;color:#8f94a3}
+    .card-embed{max-width:980px;margin:24px auto;padding:16px}
+    .card-embed .well{border:1px solid #1f2130;border-radius:14px;padding:18px;background:#0e0f14;color:#b8bbc7}
   </style>
 </head>
 <body>
@@ -38,206 +42,22 @@
     </nav>
   </header>
 
-  <main class="oops-wrap">
-    <section class="oops-card">
-      <div class="oops-head">
-        <h1 class="oops-title">Point of order! This page doesn’t exist.</h1>
-        <p class="oops-sub">
-          The dais can’t find that document. Try heading back, or take a quick recess and play this mini-game.
-        </p>
-        <div class="oops-actions">
-          <a class="btn btn-primary" href="{{ url_for('feed') }}">Go to Feed</a>
-          <a class="btn" href="{{ url_for('conferences') }}">Browse Conferences</a>
-          <a class="btn" href="{{ url_for('explore') }}">Explore Posts</a>
-        </div>
+  <main>
+    <section class="hero404">
+      <h1 class="giant">404</h1>
+      <p class="tagline">Point of order! The page you’re after doesn’t exist.</p>
+      <div class="cta-row">
+        <a class="btn" href="{{ url_for('feed') }}">Back to Feed</a>
+        <a class="btn btn-primary" href="{{ url_for('platformer') }}">Play the Platformer</a>
       </div>
+      <p class="mini-note">Tip: dodge delays, jump over bureaucracy, and speedrun to the gavel 🏁</p>
+    </section>
 
-      <div class="game-wrap">
-        <div class="hud">
-          <div class="legend">
-            Controls:
-            <span class="kbd">←</span>/<span class="kbd">A</span> &nbsp;
-            <span class="kbd">→</span>/<span class="kbd">D</span>
-            <span class="pill">Avoid falling placards!</span>
-          </div>
-          <div>
-            Score: <span id="score" class="score">0</span>
-            <span class="muted">• best <span id="best">0</span></span>
-          </div>
-        </div>
-        <canvas id="game" width="840" height="472" aria-label="Mini game canvas"></canvas>
-        <div class="hud">
-          <small class="muted">Tip: the longer you survive, the faster debates heat up.</small>
-          <button id="restart" class="btn">Restart</button>
-        </div>
+    <section class="card-embed">
+      <div class="well">
+        If you keep seeing this, the link might be outdated or private. Use the nav above to find what you need.
       </div>
     </section>
   </main>
-
-  <script>
-    (() => {
-      const cvs = document.getElementById('game');
-      const ctx = cvs.getContext('2d');
-      const scoreEl = document.getElementById('score');
-      const bestEl = document.getElementById('best');
-      const restartBtn = document.getElementById('restart');
-
-      // Game state
-      const state = {
-        w: cvs.width, h: cvs.height,
-        running: true,
-        t: 0, dt: 0, last: performance.now(),
-        score: 0, best: Number(localStorage.getItem('muniverse_best')||0),
-        speed: 2.2, // base fall speed
-        keys: {left:false,right:false},
-        player: { x: 420-22, y: 392, w: 44, h: 44, vx: 0, max: 6 },
-        objs: []
-      };
-      bestEl.textContent = state.best;
-
-      function rand(a,b){ return Math.random()*(b-a)+a }
-
-      function spawn() {
-        // Falling placard (committee placard vibe)
-        const w = rand(36, 84), h = rand(14, 22);
-        state.objs.push({
-          x: rand(0, state.w - w),
-          y: -h,
-          w, h,
-          vy: state.speed + rand(0.5, 2.0),
-          sway: rand(0.2, 1.0) * (Math.random()<.5 ? -1 : 1)
-        });
-      }
-
-      function reset() {
-        state.running = true;
-        state.t = 0; state.score = 0; state.speed = 2.2;
-        state.last = performance.now();
-        state.objs.length = 0;
-        state.player.x = (state.w - state.player.w)/2;
-        scoreEl.textContent = 0;
-      }
-
-      // Input
-      addEventListener('keydown', e => {
-        if (['ArrowLeft','a','A'].includes(e.key)) state.keys.left = true;
-        if (['ArrowRight','d','D'].includes(e.key)) state.keys.right = true;
-      });
-      addEventListener('keyup', e => {
-        if (['ArrowLeft','a','A'].includes(e.key)) state.keys.left = false;
-        if (['ArrowRight','d','D'].includes(e.key)) state.keys.right = false;
-      });
-      restartBtn.addEventListener('click', reset);
-
-      function step() {
-        const now = performance.now();
-        state.dt = (now - state.last) / 16.6667; // ~frames
-        state.last = now;
-        if (state.running) update();
-        draw();
-        requestAnimationFrame(step);
-      }
-
-      function update() {
-        state.t += state.dt;
-
-        // Difficulty ramps up slowly
-        state.speed += 0.0007 * state.dt;
-
-        // Spawn based on speed and time
-        if (Math.random() < 0.03 + Math.min(0.03, state.speed*0.004)) spawn();
-
-        // Move player
-        const p = state.player;
-        const accel = 0.9;
-        p.vx = (state.keys.left?-p.max:0) + (state.keys.right? p.max:0);
-        p.x += p.vx * 0.9 * state.dt;
-        if (p.x < 0) p.x = 0;
-        if (p.x + p.w > state.w) p.x = state.w - p.w;
-
-        // Move objects
-        for (let i=state.objs.length-1; i>=0; i--) {
-          const o = state.objs[i];
-          o.y += o.vy * state.dt;
-          o.x += o.sway * state.dt;
-          if (o.x < 0 || o.x + o.w > state.w) o.sway *= -1;
-
-          // Collision
-          if (o.x < p.x + p.w && o.x + o.w > p.x && o.y < p.y + p.h && o.y + o.h > p.y) {
-            state.running = false;
-            // store best
-            if (state.score > state.best) {
-              state.best = state.score;
-              localStorage.setItem('muniverse_best', String(state.best));
-              bestEl.textContent = state.best;
-            }
-          }
-
-          // Remove off-screen & score
-          if (o.y > state.h + 8) {
-            state.objs.splice(i,1);
-            state.score++;
-            scoreEl.textContent = state.score;
-          }
-        }
-      }
-
-      function draw() {
-        const {w,h} = state;
-        ctx.clearRect(0,0,w,h);
-
-        // Background grid
-        ctx.fillStyle = '#0b0c12';
-        ctx.fillRect(0,0,w,h);
-        ctx.strokeStyle = 'rgba(255,106,0,.08)';
-        ctx.lineWidth = 1;
-        for(let x=0; x<w; x+=28){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-        for(let y=0; y<h; y+=28){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
-
-        // Title watermark
-        ctx.fillStyle = 'rgba(255,106,0,.12)';
-        ctx.font = '700 46px Kanit, system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Muniverse Debate Floor', w/2, 70);
-
-        // Player (badge)
-        const p = state.player;
-        ctx.fillStyle = '#ff6a00';
-        roundRect(ctx, p.x, p.y, p.w, p.h, 10, true);
-
-        // Objects (placards)
-        for (const o of state.objs) {
-          ctx.fillStyle = '#1f2130';
-          roundRect(ctx, o.x, o.y, o.w, o.h, 6, true);
-          ctx.strokeStyle = 'rgba(255,106,0,.5)';
-          ctx.strokeRect(o.x+.5, o.y+.5, o.w-1, o.h-1);
-        }
-
-        if (!state.running) {
-          ctx.fillStyle = 'rgba(0,0,0,.55)';
-          ctx.fillRect(0,0,w,h);
-          ctx.fillStyle = '#fff';
-          ctx.font = '700 32px Kanit, system-ui, sans-serif';
-          ctx.fillText('Point of order — you were ruled out of order!', w/2, h/2 - 10);
-          ctx.font = '400 16px Kanit, system-ui, sans-serif';
-          ctx.fillText('Press Restart or use the buttons above to navigate.', w/2, h/2 + 18);
-        }
-      }
-
-      function roundRect(ctx, x, y, w, h, r, fill) {
-        ctx.beginPath();
-        ctx.moveTo(x+r, y);
-        ctx.arcTo(x+w, y,   x+w, y+h, r);
-        ctx.arcTo(x+w, y+h, x,   y+h, r);
-        ctx.arcTo(x,   y+h, x,   y,   r);
-        ctx.arcTo(x,   y,   x+w, y,   r);
-        ctx.closePath();
-        if (fill) ctx.fill();
-      }
-
-      reset();
-      step();
-    })();
-  </script>
 </body>
 </html>

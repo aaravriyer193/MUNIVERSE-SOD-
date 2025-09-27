@@ -445,8 +445,13 @@ def _uploads():
 # -------------------- 404 handler --------------------
 @app.errorhandler(404)
 def not_found(e):
-    # You can log e.description if you want
     return render_template("404.html"), 404
+
+# -------------------- Simple platformer page --------------------
+@app.route("/platformer")
+def platformer():
+    return render_template("platformer.html")
+
 
 
 # -----------------------------------------------------------------------------
