@@ -447,13 +447,6 @@ def _uploads():
 def not_found(e):
     return render_template("404.html"), 404
 
-# -------------------- Simple platformer page --------------------
-@app.route("/platformer")
-def platformer():
-    return render_template("platformer.html")
-
-
-
 # -----------------------------------------------------------------------------
 # Run
 # -----------------------------------------------------------------------------

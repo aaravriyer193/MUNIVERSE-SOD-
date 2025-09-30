@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <title>Feed — Muniverse</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/static/img/favicon.png" type="image/png">
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="{{ url_for('onboarding') }}">🌍 <span>Muniverse</span></a>
+    <a class="logo" href="{{ url_for('onboarding') }}">
+    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+    <span>Muniverse</span>
+    </a>    
     <nav class="nav">
       <a href="{{ url_for('feed') }}">Home</a>
       <a href="{{ url_for('explore') }}">Explore</a>
@@ -56,9 +60,9 @@
               <div class="meta">
                 <button class="like-btn" data-post="{{ post.id }}">
                   {% if current_user and current_user.username in (post.liked_by or []) %}
-                    ❤️ Liked
+                    ❤️
                   {% else %}
-                    🤍 Like
+                    🤍
                   {% endif %}
                 </button>
                 <span class="like-count" data-post="{{ post.id }}">{{ post.likes or 0 }}</span>
@@ -82,7 +86,7 @@
         if (data.ok) {
           const countEl = document.querySelector(`.like-count[data-post="${id}"]`);
           if (countEl) countEl.textContent = data.likes;
-          btn.textContent = data.liked ? '❤️ Liked' : '🤍 Like';
+          btn.textContent = data.liked ? '❤️' : '🤍';
         } else if (data.error === 'auth') {
           location.href = '/login?next=' + encodeURIComponent(location.pathname);
         }
