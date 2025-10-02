@@ -5,7 +5,7 @@ from flask import (
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
-import json, os, functools
+import json, os, functools, re, time
 
 # -----------------------------------------------------------------------------
 # Flask setup
@@ -21,6 +21,8 @@ DATA_DIR   = "data"
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 POSTS_FILE = os.path.join(DATA_DIR, "posts.json")
 CONF_FILE  = os.path.join(DATA_DIR, "conferences.json")
+FORUM_THREADS = os.path.join(DATA_DIR, "forum_threads.json")
+FORUM_REPLIES = os.path.join(DATA_DIR, "forum_replies.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
@@ -80,6 +82,17 @@ def get_post_by_id(post_id: int):
 
 def save_posts(posts):
     save_json(POSTS_FILE, posts)
+
+# --- forum helpers ---
+def next_id(items):
+    return (max((x.get("id", 0) for x in items), default=0) + 1) if items else 1
+
+def slugify(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-{2,}", "-", s)
+    return s[:80] or "topic"
 
 # -----------------------------------------------------------------------------
 # Auth helpers
@@ -166,7 +179,7 @@ def signup():
             file.save(os.path.join(USER_UPLOAD_DIR, final_name))
             photo_path = f"img/users/{final_name}"
         if not photo_path:
-            photo_path = "img/users/default.png"  # make sure this exists
+            photo_path = "img/users/default.png"  # ensure this exists in static/img/users
 
         new_user = {
             "name": name,
@@ -219,14 +232,14 @@ def explore():
             user = (p.get("username") or "").lower()
             return q in cap or q in user
         posts = [p for p in posts if hit(p)]
+    posts = [normalize_post(p) for p in posts]
     posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
     return render_template("explore.html", posts=posts, q=q)
 
 @app.route("/feed")
 def feed():
     posts = load_json(POSTS_FILE)
-    for p in posts:
-        normalize_post(p)
+    posts = [normalize_post(p) for p in posts]
     posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
     return render_template("feed.html", posts=posts)
 
@@ -417,6 +430,105 @@ def profile(username):
     user_posts = [normalize_post(p) for p in posts if p.get("username") == username]
     return render_template("profile.html", user=user, posts=user_posts)
 
+# -------------------- Forums --------------------
+@app.route("/forums")
+def forums():
+    threads = load_json(FORUM_THREADS)
+    q = (request.args.get("q") or "").strip().lower()
+    tag = (request.args.get("tag") or "").strip().lower()
+
+    if q:
+        def hit(t):
+            return q in (t.get("title","").lower() + " " + t.get("body","").lower() + " " + " ".join(t.get("tags",[])).lower())
+        threads = [t for t in threads if hit(t)]
+    if tag:
+        threads = [t for t in threads if tag in [x.lower() for x in t.get("tags", [])]]
+
+    threads = sorted(threads, key=lambda t: t.get("created_ts", 0), reverse=True)
+    return render_template("forums.html", threads=threads, q=q, tag=tag)
+
+@app.route("/forums/new", methods=["GET", "POST"])
+@login_required
+def forum_new():
+    if request.method == "POST":
+        me = get_current_user()
+        threads = load_json(FORUM_THREADS)
+        title = (request.form.get("title") or "").strip()
+        body  = (request.form.get("body") or "").strip()
+        tags_raw = (request.form.get("tags") or "").strip()
+
+        if not title or not body:
+            flash("Title and body are required.", "error")
+            return redirect(url_for("forum_new"))
+
+        tid = next_id(threads)
+        slug = f"{slugify(title)}-{tid}"
+        thread = {
+            "id": tid,
+            "slug": slug,
+            "title": title,
+            "body": body,
+            "tags": [t.strip() for t in tags_raw.split(",") if t.strip()],
+            "author": me["username"],
+            "created_ts": int(time.time()),
+            "replies": 0,
+            "views": 0
+        }
+        threads.append(thread)
+        save_json(FORUM_THREADS, threads)
+        flash("Thread created.", "ok")
+        return redirect(url_for("forum_thread", slug=slug))
+    return render_template("forum_new.html")
+
+@app.route("/forums/<slug>", methods=["GET", "POST"])
+def forum_thread(slug):
+    threads = load_json(FORUM_THREADS)
+    replies = load_json(FORUM_REPLIES)
+
+    thread = next((t for t in threads if t.get("slug") == slug or str(t.get("id")) == slug), None)
+    if not thread:
+        abort(404, "Thread not found")
+
+    # increment views
+    thread["views"] = int(thread.get("views", 0)) + 1
+    save_json(FORUM_THREADS, threads)
+
+    if request.method == "POST":
+        if not session.get("username"):
+            flash("Sign in to reply.", "warn")
+            return redirect(url_for("login", next=request.path))
+
+        me = get_current_user()
+        text = (request.form.get("text") or "").strip()
+        if not text:
+            flash("Reply cannot be empty.", "error")
+            return redirect(url_for("forum_thread", slug=slug))
+
+        rid = next_id(replies)
+        reply = {
+            "id": rid,
+            "thread_id": thread["id"],
+            "author": me["username"],
+            "text": text,
+            "created_ts": int(time.time())
+        }
+        replies.append(reply)
+        save_json(FORUM_REPLIES, replies)
+
+        thread["replies"] = int(thread.get("replies", 0)) + 1
+        save_json(FORUM_THREADS, threads)
+
+        return redirect(url_for("forum_thread", slug=slug))
+
+    thread_replies = [r for r in replies if r.get("thread_id") == thread["id"]]
+    thread_replies = sorted(thread_replies, key=lambda r: r.get("created_ts", 0))
+    return render_template("forum_thread.html", thread=thread, replies=thread_replies)
+
+# -------------------- Platformer (T-Rex-like) --------------------
+@app.route("/platformer")
+def platformer():
+    return render_template("platformer.html")
+
 # -------------------- About --------------------
 @app.route("/about")
 def about():
@@ -430,9 +542,7 @@ def _uploads():
         "POST_UPLOAD_DIR": POST_UPLOAD_DIR,
         "USER_UPLOAD_DIR": USER_UPLOAD_DIR,
         "CONF_UPLOAD_DIR": CONF_UPLOAD_DIR,
-        "post_files": [],
-        "user_files": [],
-        "conference_files": []
+        "post_files": [], "user_files": [], "conference_files": []
     }
     try: info["post_files"] = sorted(os.listdir(POST_UPLOAD_DIR))
     except Exception as e: info["post_files"] = [f"<error: {e}>"]

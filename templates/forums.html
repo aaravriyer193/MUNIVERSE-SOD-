@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Forums — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <link rel="icon" href="/static/img/favicon.png" type="image/png">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+<header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">
+    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+    <span>Muniverse</span>
+    </a>  
+    <button class="hamburger" aria-label="Menu" onclick="document.querySelector('.nav').classList.toggle('show')">☰</button>
+  <nav class="nav">
+    <a href="{{ url_for('feed') }}">Home</a>
+    <a href="{{ url_for('explore') }}">Explore</a>
+    <a href="{{ url_for('conferences') }}">Conferences</a>
+    <a href="{{ url_for('forums') }}" class="active">Forums</a>
+    <a href="{{ url_for('about') }}">About</a>
+    {% if current_user %}
+      <a href="{{ url_for('profile', username=current_user.username) }}" class="avatar-link" title="@{{ current_user.username }}">
+        <img class="avatar-circle" src="{{ url_for('static', filename=current_user.profile_pic) }}" alt="{{ current_user.username }}">
+      </a>
+      <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+    {% else %}
+      <a class="btn" href="{{ url_for('login') }}">Sign in</a>
+      <a class="btn btn-primary" href="{{ url_for('signup') }}">Create profile</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main class="container">
+  <section class="card pad">
+    <form class="form" method="get">
+      <div class="two-col">
+        <label>Search
+          <input name="q" value="{{ q or '' }}" placeholder="Topic, text, or tag" />
+        </label>
+        <label>Filter by tag
+          <input name="tag" value="{{ tag or '' }}" placeholder="#GA, #UNSC…" />
+        </label>
+      </div>
+      <div>
+        {% if current_user %}
+          <a class="btn btn-primary" href="{{ url_for('forum_new') }}">+ New Thread</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('login', next=url_for('forum_new')) }}">Sign in to post</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  {% if threads|length == 0 %}
+    <div class="empty card">
+      <h3>No threads yet</h3>
+      <p>Start the first discussion.</p>
+      {% if current_user %}
+        <a class="btn btn-primary" href="{{ url_for('forum_new') }}">Create a thread</a>
+      {% endif %}
+    </div>
+  {% else %}
+  <section class="feed-list">
+    {% for t in threads %}
+      <article class="card pad">
+        <h3 style="margin:0 0 6px 0">
+          <a href="{{ url_for('forum_thread', slug=t.slug) }}">{{ t.title }}</a>
+        </h3>
+        <p class="muted">@{{ t.author }} • {{ t.replies }} replies • {{ t.views or 0 }} views</p>
+        <p class="clamp-2">{{ t.body }}</p>
+        {% if t.tags %}
+          <div class="tags" style="margin-top:8px">
+            {% for tg in t.tags %}
+              <a class="tag" href="{{ url_for('forums') }}?tag={{ tg|urlencode }}">{{ tg }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+</main>
+</body>
+</html>

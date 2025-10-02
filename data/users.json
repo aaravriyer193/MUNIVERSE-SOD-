@@ -1,28 +1,13 @@
 [
   {
-    "name": "Aarav Iyer",
-    "username": "Aaraviyer193",
+    "name": "Kanav Negi",
+    "username": "kouri",
     "school": "Gems Modern Academy",
-    "bio": "...",
-    "profile_pic": "img/users/Aaraviyer193.png",
-    "password_hash": "scrypt:32768:8:1$Zu04v0byJmXF3zzx$5c72a3560c4d4cda0979bfbb18fedca8a2a7e9e69c3452c49c7fd1457f9d1b2a7adf59675d29382fd6e5046410d7a8768f45bff9a4a87820ca1ded11aa889d89",
+    "bio": "introverted 5 foot -123244",
+    "profile_pic": "img/users/kouri.png",
+    "password_hash": "scrypt:32768:8:1$0OZl7TYu37vO8i4o$14337e209d5710dd1fc9cd299a3ceb07ac8023fa038f1f4ae055185aaa1c7c0f95f66d7d5ffbc736f4633239be65f01f5eae0a8233191d694e4ee56d810263f4",
     "attendingConferences": [],
     "followers": [],
-    "following": [
-      "ryanlooooo"
-    ]
-  },
-  {
-    "name": "ryan looy",
-    "username": "ryanlooooo",
-    "school": "Gems Modern Academy",
-    "bio": "i am so cool and smart",
-    "profile_pic": "img/users/ryanlooooo.png",
-    "password_hash": "scrypt:32768:8:1$bhx9TGjBP9OW8R1R$078c47b8a4785593343137e2c0b31406d8b952f46ecfb4bffa167a013b8a4fefeb3b2987414b7581117d392195230311031c925a47a6b68747beb2db3264e428",
-    "attendingConferences": [],
-    "followers": [
-      "Aaraviyer193"
-    ],
     "following": []
   }
 ]
