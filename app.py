@@ -524,10 +524,6 @@ def forum_thread(slug):
     thread_replies = sorted(thread_replies, key=lambda r: r.get("created_ts", 0))
     return render_template("forum_thread.html", thread=thread, replies=thread_replies)
 
-# -------------------- Platformer (T-Rex-like) --------------------
-@app.route("/platformer")
-def platformer():
-    return render_template("platformer.html")
 
 # -------------------- About --------------------
 @app.route("/about")

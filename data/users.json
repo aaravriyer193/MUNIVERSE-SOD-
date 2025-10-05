@@ -1,13 +1,1 @@
-[
-  {
-    "name": "Kanav Negi",
-    "username": "kouri",
-    "school": "Gems Modern Academy",
-    "bio": "introverted 5 foot -123244",
-    "profile_pic": "img/users/kouri.png",
-    "password_hash": "scrypt:32768:8:1$0OZl7TYu37vO8i4o$14337e209d5710dd1fc9cd299a3ceb07ac8023fa038f1f4ae055185aaa1c7c0f95f66d7d5ffbc736f4633239be65f01f5eae0a8233191d694e4ee56d810263f4",
-    "attendingConferences": [],
-    "followers": [],
-    "following": []
-  }
-]
+[]
