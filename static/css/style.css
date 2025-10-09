@@ -43,15 +43,50 @@ a:hover{opacity:.9}
 .logo{display:flex;gap:8px;align-items:center;font-weight:700;color:var(--ink)}
 .logo span{letter-spacing:.5px}
 
-.nav{display:flex;gap:14px;align-items:center}
-.nav a{
-  padding:8px 10px;border-radius:10px;color:#ddd;
-  border:1px solid transparent;
+.nav {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    justify-content: center; /* Center items when they wrap */
 }
-.nav a.active{background:var(--panel);box-shadow:var(--ring);border-color:var(--stroke)}
-.nav .pill{
-  padding:8px 14px;background:var(--accent);color:black;
-  border-radius:999px;font-weight:700;border:1px solid transparent;
+
+.nav a {
+    padding: 8px 10px;
+    border-radius: 10px;
+    color: #ddd;
+    border: 1px solid transparent;
+}
+
+.nav a.active {
+    background: var(--panel);
+    box-shadow: var(--ring);
+    border-color: var(--stroke);
+}
+
+.nav .pill {
+    padding: 8px 14px;
+    background: var(--accent);
+    color: black;
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+/* Media query for smaller screens */
+@media (max-width: 768px) {
+    .nav {
+        flex-direction: column; /* Stack navigation items vertically */
+        gap: 8px; /* Reduce gap between stacked items */
+        align-items: stretch; /* Make items take full width */
+    }
+
+    .nav a,
+    .nav .pill {
+        width: 100%; /* Ensure links and pills take full width */
+        text-align: center; /* Center text within the full-width items */
+        padding: 12px 10px; /* Adjust padding for better touch targets */
+    }
 }
 
 /* Hamburger */
