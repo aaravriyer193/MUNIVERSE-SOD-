@@ -9,10 +9,17 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="{{ url_for('onboarding') }}">
+    <a class="logo" href="{{ url_for('feed') }}">
     <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
     <span>Muniverse</span>
-    </a>    <nav class="nav">
+    </a>   
+    <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="Toggle navigation">
+  <label for="menu-toggle" class="hamburger">
+    <span class="bar top-bar"></span>
+    <span class="bar middle-bar"></span>
+    <span class="bar bottom-bar"></span>
+  </label> 
+    <nav class="nav">
       <a class="active" href="{{ url_for('feed') }}">Back to Feed</a>
       {% if current_user %}
         <a href="{{ url_for('profile', username=current_user.username) }}" class="avatar-link" title="@{{ current_user.username }}">

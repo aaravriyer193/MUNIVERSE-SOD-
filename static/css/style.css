@@ -43,7 +43,12 @@ a:hover{opacity:.9}
 .logo{display:flex;gap:8px;align-items:center;font-weight:700;color:var(--ink)}
 .logo span{letter-spacing:.5px}
 
-.nav{display:flex;gap:14px;align-items:center}
+/* Desktop navigation links */
+.nav {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
 .nav a{
   padding:8px 10px;border-radius:10px;color:#ddd;
   border:1px solid transparent;
@@ -54,20 +59,16 @@ a:hover{opacity:.9}
   border-radius:999px;font-weight:700;border:1px solid transparent;
 }
 
-/* Hamburger */
-.hamburger{
-  background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;display:none;margin-left:auto;
+/* Hide the checkbox from view but keep it functional */
+.menu-toggle {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none; /* Prevents it from blocking other clicks */
 }
 
-/* Responsive nav */
-@media(max-width:768px){
-  .nav{
-    display:none; flex-direction:column; gap:.5rem;
-    background:#151515; position:absolute; right:10px; top:60px;
-    padding:.8rem; border-radius:10px; border:1px solid #202020; box-shadow:var(--shadow);
-  }
-  .nav.show{display:flex}
-  .hamburger{display:block}
+/* Base styles for the hamburger icon lines (hidden on desktop) */
+.hamburger {
+  display: none; /* Hide on desktop by default */
 }
 
 /* Avatar (topbar) */
@@ -84,6 +85,70 @@ a:hover{opacity:.9}
 .logo-up-image{
   max-height:60px;max-width:60px;height:auto;width:auto;display:inline-block;vertical-align:middle;margin-right:0;
 }
+
+/* --- Mobile Styles (max-width: 768px) --- */
+@media (max-width: 768px) {
+  /* Restructure the header for mobile */
+  .topbar {
+    justify-content: space-between;
+  }
+
+  /* The menu starts hidden on mobile */
+  .nav {
+    display: none;
+    flex-direction: column;
+    gap: .5rem;
+    background: #000000;
+    position: absolute;
+    right: 10px;
+    top: 60px;
+    padding: .8rem;
+    border-radius: 10px;
+    border: 1px solid #2b2b2b;
+    box-shadow: var(--shadow);
+    z-index: 999;
+  }
+
+  /* The hamburger icon is now visible on mobile */
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 22px;
+    width: 28px;
+    cursor: pointer;
+    z-index: 1000;
+  }
+  
+  /* Style the individual bars of the hamburger */
+  .hamburger .bar {
+    display: block;
+    height: 3px;
+    width: 100%;
+    background-color: #fff;
+    border-radius: 2px;
+    transition: all 0.5s ease-in-out; /* Add transition for the animation */
+  }
+
+  /* Animate hamburger to a cross (X) when the menu is active */
+  #menu-toggle:checked ~ .hamburger .top-bar {
+    transform: translateY(9px) rotate(315deg);
+  }
+
+  #menu-toggle:checked ~ .hamburger .middle-bar {
+    opacity: 0;
+  }
+
+  #menu-toggle:checked ~ .hamburger .bottom-bar {
+    transform: translateY(-10px) rotate(-315deg);
+  }
+
+  /* Show the menu when the checkbox is checked */
+  #menu-toggle:checked ~ .nav {
+    display: flex;
+  }
+}
+
 /* =========================================================
    Layout / Cards / Buttons / Forms
    ========================================================= */
