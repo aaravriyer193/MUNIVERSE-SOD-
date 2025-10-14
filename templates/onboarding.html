@@ -4,14 +4,12 @@
   <meta charset="UTF-8" />
   <title>Muniverse — Onboarding</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Kanit (headings) + Inter fallback -->
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/img/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
-
+  
   <style>
-    :root{
+    :root {
       --bg:#0b0b0d;
       --panel:#121216;
       --muted:#a6a6ad;
@@ -22,136 +20,216 @@
       --card:#111114;
       --edge:#1b1b21;
     }
-    * { box-sizing:border-box }
-    body{
+
+    * { box-sizing:border-box; }
+
+    body {
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial;
       color:var(--text);
-      background: radial-gradient(900px 500px at 110% -10%, rgba(255,106,0,.08), transparent 60%),
-                  radial-gradient(700px 400px at -10% -10%, rgba(255,140,0,.08), transparent 60%),
-                  var(--bg);
+      background:
+        radial-gradient(900px 500px at 110% -10%, rgba(255,106,0,.08), transparent 60%),
+        radial-gradient(700px 400px at -10% -10%, rgba(255,140,0,.08), transparent 60%),
+        var(--bg);
       min-height:100dvh;
       overflow-x:hidden;
+      animation:bgShift 30s ease-in-out infinite alternate;
     }
-    .topbar{
-      position:sticky; top:0; z-index:10;
-      display:flex; align-items:center; justify-content:space-between;
-      gap:16px; padding:18px 22px;
-      background:linear-gradient(180deg, rgba(11,11,13,.9), rgba(11,11,13,.55) 60%, transparent);
-      backdrop-filter:saturate(1.2) blur(6px);
-      border-bottom:1px solid var(--edge);
-    }
-    .logo{font-family:Kanit,Inter; font-weight:800; letter-spacing:.3px; display:flex; align-items:center; gap:.5rem;}
-    .logo span{ background:linear-gradient(90deg,var(--accent),#ffb86b); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 0 18px rgba(255,106,0,.25);}
-    .nav a{ color:var(--muted); text-decoration:none; margin-left:.9rem; }
-    .nav a:hover{ color:#fff }
 
-    .hero{
+    @keyframes bgShift {
+      0% { background-position: 0 0, 0 0, 0 0; }
+      100% { background-position: 40px 60px, -30px -20px, 0 0; }
+    }
+
+    .hero {
       position:relative;
-      display:grid; place-items:center;
-      padding:72px 18px 24px;
+      display:grid;
+      place-items:center;
+      padding:80px 18px 60px;
       overflow:hidden;
+      text-align:center;
     }
-    .headline{
-      font-family:Kanit,Inter; font-weight:800; line-height:1.05;
-      text-align:center; max-width:980px; margin:0 auto 12px;
-      font-size: clamp(40px, 4.8vw, 70px);
+
+    .hero-logo {
+      width:120px; height:120px;
+      border-radius:50%;
+      overflow:hidden;
+      background: radial-gradient(circle at 50% 50%, rgba(255,106,0,.4), rgba(255,106,0,.1));
+      display:flex; align-items:center; justify-content:center;
+      margin-bottom:20px;
+      animation:pulse 4s ease-in-out infinite;
+      box-shadow:0 0 40px rgba(255,106,0,.25);
+      transform-style:preserve-3d;
+      transition:transform .3s ease;
     }
-    .glow{
-      background: radial-gradient(circle at 50% 50%, #fff, #fff) text;
+
+    .hero-logo img {
+      width:80px;
+      height:80px;
+      object-fit:contain;
+      filter:drop-shadow(0 0 10px rgba(255,106,0,.3));
+    }
+
+    .hero-logo:hover {
+      transform:rotateY(12deg) rotateX(6deg) scale(1.05);
+    }
+
+    @keyframes pulse {
+      0%,100% { box-shadow:0 0 40px rgba(255,106,0,.25); }
+      50% { box-shadow:0 0 70px rgba(255,140,0,.4); }
+    }
+
+    .headline {
+      font-family:Kanit,Inter;
+      font-weight:800;
+      line-height:1.05;
+      margin:0 auto 12px;
+      font-size:clamp(42px,4.8vw,70px);
+      max-width:980px;
+      background:linear-gradient(90deg,var(--accent),#ffb86b);
+      -webkit-background-clip:text;
       color:transparent;
-      text-shadow:
-        0 0 24px rgba(255,106,0,.25),
-        0 0 48px rgba(255,106,0,.18);
-    }
-    .sub{
-      text-align:center; color:var(--muted);
-      max-width:880px; margin:0 auto 26px; font-size:clamp(15px,1.8vw,18px);
-    }
-    .actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
-    .btn{ border:1px solid var(--edge); background:var(--panel); color:#fff; padding:12px 16px; border-radius:12px; font-weight:600; text-decoration:none; transition:.18s transform,.18s box-shadow,.18s border-color; display:inline-flex; align-items:center; gap:.55rem;}
-    .btn:focus-visible{ outline:none; box-shadow:0 0 0 6px var(--ring); }
-    .btn-primary{ background:linear-gradient(180deg, var(--accent), #ff6a00); border-color:#ff7a1f; box-shadow:0 10px 30px rgba(255,106,0,.25);}
-    .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 12px 34px rgba(255,106,0,.34);}
-    .btn-ghost{ background:transparent; border-color:var(--edge); color:#fff;}
-    .btn-ghost:hover{ border-color:#2a2a32; transform:translateY(-1px); }
-
-    /* floating particles */
-    .particles{ position:absolute; inset:0; pointer-events:none; opacity:.7; }
-    .p{ position:absolute; width:2px; height:2px; border-radius:50%; background:radial-gradient(circle, var(--accent-2), transparent 60%); filter:blur(.3px); animation:float var(--t) linear infinite; left:var(--l); top:var(--tp); }
-    @keyframes float{
-      0%{ transform:translateY(0) translateX(0); opacity:.15}
-      60%{ opacity:.5}
-      100%{ transform:translateY(-110vh) translateX(10vw); opacity:0}
+      text-shadow:0 0 28px rgba(255,106,0,.3);
+      animation:shine 8s linear infinite;
+      background-size:200% auto;
     }
 
-    /* content sections */
-    .section{ padding:42px 18px 8px; }
-    .container{ max-width:1100px; margin:0 auto; }
-    .grid{ display:grid; gap:16px; grid-template-columns:repeat(12, 1fr);}
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.015), transparent 60%), var(--card);
-      border:1px solid var(--edge); border-radius:16px; padding:18px;
+    @keyframes shine {
+      0% { background-position:0% center; }
+      100% { background-position:200% center; }
     }
-    .feat{ grid-column: span 12; display:flex; gap:14px; align-items:flex-start; }
-    @media (min-width:800px){
-      .feat{ grid-column: span 4; }
+
+    .sub {
+      color:var(--muted);
+      max-width:780px;
+      margin:0 auto 30px;
+      font-size:clamp(15px,1.8vw,18px);
     }
-    .feat i{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(180deg, rgba(255,106,0,.2), rgba(255,106,0,.05)); border:1px solid #2a1a11; box-shadow:inset 0 0 18px rgba(255,106,0,.12); }
-    .feat h3{ margin:2px 0 6px; font-family:Kanit,Inter; letter-spacing:.2px; }
-    .feat p{ margin:0; color:var(--muted) }
 
-    .how .step{ grid-column:span 12; }
-    @media (min-width:880px){ .how .step{ grid-column:span 4;} }
-    .step h4{ margin:.2rem 0 .4rem; font-family:Kanit,Inter}
-    .step p{ margin:0; color:var(--muted) }
-
-    .stats{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin:22px 0;}
-    .stat{ min-width:170px; text-align:center; padding:14px 18px; border:1px solid var(--edge); border-radius:14px; background:linear-gradient(180deg, rgba(255,106,0,.06), rgba(0,0,0,.0));}
-    .stat b{ font-size:22px; display:block; font-family:Kanit,Inter}
-    .stat span{ color:var(--muted) }
-
-    .quote{
-      grid-column:span 12; padding:22px; border-radius:16px; border:1px dashed #2a2a33;
-      background:linear-gradient(180deg, rgba(255,106,0,.08), rgba(17,17,20,.6));
-      font-size:16px; color:#fff;
+    .actions {
+      display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
     }
-    .quote em{ color:var(--muted); font-style:normal }
 
-    footer{
-      margin-top:40px; padding:28px 18px; border-top:1px solid var(--edge);
-      display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
-      color:var(--muted)
+    .btn {
+      border:1px solid var(--edge);
+      border-radius:12px;
+      padding:12px 18px;
+      font-weight:600;
+      text-decoration:none;
+      display:inline-flex; align-items:center; gap:.5rem;
+      transition:.25s ease;
+      cursor:pointer;
     }
-    .kbd{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      border:1px solid var(--edge); padding:2px 6px; border-radius:6px; background:#0f0f12; color:#d9d9df;
-      box-shadow:inset 0 -1px 0 rgba(255,255,255,.05); font-size:12px;
+
+    .btn-primary {
+      background:linear-gradient(180deg, var(--accent), #ff6a00);
+      box-shadow:0 8px 25px rgba(255,106,0,.3);
+      color:#fff;
+    }
+
+    .btn-primary:hover {
+      transform:translateY(-2px) scale(1.03);
+      box-shadow:0 12px 35px rgba(255,106,0,.45);
+    }
+
+    .btn-ghost {
+      background:transparent;
+      color:#fff;
+    }
+
+    .btn-ghost:hover {
+      background:rgba(255,106,0,.08);
+      border-color:#ff7a1f;
+      transform:translateY(-2px);
+    }
+
+    .stats {
+      display:flex;
+      gap:18px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin:40px 0 0;
+    }
+
+    .stat {
+      min-width:170px;
+      text-align:center;
+      padding:16px 18px;
+      border:1px solid var(--edge);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(255,106,0,.06), rgba(0,0,0,.0));
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+
+    .stat:hover {
+      transform:scale(1.05);
+      box-shadow:0 0 24px rgba(255,106,0,.2);
+    }
+
+    .stat b {
+      font-size:22px;
+      font-family:Kanit,Inter;
+      display:block;
+    }
+
+    .stat span { color:var(--muted); }
+
+    /* floating orange spark particles */
+    .spark {
+      position:absolute;
+      width:4px; height:4px;
+      border-radius:50%;
+      background:radial-gradient(circle, var(--accent-2), transparent 70%);
+      animation:sparkFloat var(--t) linear infinite;
+      left:var(--l); top:var(--tp);
+      opacity:.8;
+      filter:blur(.4px);
+    }
+
+    @keyframes sparkFloat {
+      0% { transform:translateY(0); opacity:.2; }
+      60% { opacity:.9; }
+      100% { transform:translateY(-120vh) translateX(10vw); opacity:0; }
+    }
+
+    footer {
+      margin-top:50px;
+      padding:28px;
+      border-top:1px solid var(--edge);
+      text-align:center;
+      color:var(--muted);
+      font-size:14px;
     }
   </style>
 </head>
 
+<body>
   <section class="hero">
-    <!-- floating particles -->
+    <!-- Floating spark particles -->
     <div class="particles" aria-hidden="true">
-      <!-- 20 gently floating dots -->
-      <div class="p" style="--l:10%; --tp:70%; --t:22s;"></div>
-      <div class="p" style="--l:22%; --tp:66%; --t:18s;"></div>
-      <div class="p" style="--l:30%; --tp:74%; --t:26s;"></div>
-      <div class="p" style="--l:42%; --tp:80%; --t:24s;"></div>
-      <div class="p" style="--l:50%; --tp:68%; --t:19s;"></div>
-      <div class="p" style="--l:58%; --tp:78%; --t:21s;"></div>
-      <div class="p" style="--l:66%; --tp:72%; --t:27s;"></div>
-      <div class="p" style="--l:74%; --tp:76%; --t:23s;"></div>
-      <div class="p" style="--l:82%; --tp:69%; --t:20s;"></div>
-      <div class="p" style="--l:90%; --tp:77%; --t:25s;"></div>
+      <div class="spark" style="--l:10%;--tp:70%;--t:22s;"></div>
+      <div class="spark" style="--l:22%;--tp:66%;--t:18s;"></div>
+      <div class="spark" style="--l:30%;--tp:74%;--t:26s;"></div>
+      <div class="spark" style="--l:42%;--tp:80%;--t:24s;"></div>
+      <div class="spark" style="--l:50%;--tp:68%;--t:19s;"></div>
+      <div class="spark" style="--l:58%;--tp:78%;--t:21s;"></div>
+      <div class="spark" style="--l:66%;--tp:72%;--t:27s;"></div>
+      <div class="spark" style="--l:74%;--tp:76%;--t:23s;"></div>
+      <div class="spark" style="--l:82%;--tp:69%;--t:20s;"></div>
+      <div class="spark" style="--l:90%;--tp:77%;--t:25s;"></div>
     </div>
-    <div>
-      <h1 class="headline glow">Where delegates connect beyond debate.</h1>
+
+    <!-- Logo with animation -->
+    <div class="hero-logo">
+      <img src="/static/img/favicon.png" alt="Muniverse Logo">
     </div>
+
+    <h1 class="headline">Where delegates connect beyond debate.</h1>
     <p class="sub">
-      Build your profile. Share committee moments. Discover conferences.  
+      Build your profile. Share committee moments. Discover conferences.<br>
       Muniverse is your hub for everything MUN — fast, social, and easy to share.
     </p>
+
     <div class="actions">
       <a class="btn btn-primary" href="{{ url_for('signup') }}">Create Profile</a>
       <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
@@ -160,60 +238,13 @@
     <div class="stats">
       <div class="stat"><b>Instant</b><span>No login wall for guests</span></div>
       <div class="stat"><b>Shareable</b><span>Clean URLs for posts</span></div>
-      <div class="stat"><b>Quick</b>MUNers now only need one platform<span></span></div>
+      <div class="stat"><b>Quick</b><span>MUNers now only need one platform</span></div>
     </div>
   </section>
 
-  <section class="section container">
-    <div class="grid">
-      <div class="feat card">
-        <i> </i>
-        <div>
-          <h3>Post Highlights</h3>
-          <p>Share gavel moments, draft wins, and photo recaps — likes & comments included.</p>
-        </div>
-      </div>
-      <div class="feat card">
-        <i></i>
-        <div>
-          <h3>Explore Everything</h3>
-          <p>Search by hashtags, users, or committees. Infinite scroll keeps the momentum.</p>
-        </div>
-      </div>
-      <div class="feat card">
-        <i></i>
-        <div>
-          <h3>Conferences Hub</h3>
-          <p>Browse banners, dates, and locations. Mark “I’m Attending” — saved on your device.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section container how">
-    <h2 class="headline" style="font-size:clamp(22px,3vw,30px); margin:0 0 16px;">How it works</h2>
-    <div class="grid">
-      <div class="step card">
-        <h4>1. Create your profile</h4>
-        <p>Two minutes, tops. Name, school, short bio, and a picture — done.</p>
-      </div>
-      <div class="step card">
-        <h4>2. Share a post</h4>
-        <p>Upload an image, add a caption and tags. It appears instantly in the feed.</p>
-      </div>
-      <div class="step card">
-        <h4>3. Discover conferences</h4>
-        <p>Filter by tag or city. Open a conference to see details and banner.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section container">
-    <div class="quote">
-      “This is the MUN feed I wish existed years ago. Fast, beautiful, and it just works.”
-      <br><em>— The Muniverse Team</em>
-    </div>
-  </section>
+  <footer>
+    Made with ☄️ by the <b>Muniverse</b> team · Press <span class="kbd">g</span><span class="kbd">g</span> to open Feed
+  </footer>
 
   <script>
     // Keyboard shortcut: g g -> go to Feed
