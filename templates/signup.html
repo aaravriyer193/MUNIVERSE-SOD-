@@ -10,15 +10,15 @@
 <body>
   <header class="topbar">
     <a class="logo" href="{{ url_for('onboarding') }}">
-    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
-    <span>Muniverse</span>
+      <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+      <span>Muniverse</span>
     </a>  
   </header>
 
   <main class="container narrow">
     <h2 class="section-title">Create your profile</h2>
 
-    <form class="card form" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data" novalidate>
+    <form class="card form" id="signupForm" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data" novalidate>
       <div class="two-col">
         <label>Full Name
           <input required name="name" placeholder="e.g., Aanya Kapoor" />
@@ -54,5 +54,49 @@
       <button class="btn btn-primary" type="submit">Join Muniverse</button>
     </form>
   </main>
+
+  <script>
+    document.getElementById("signupForm").addEventListener("submit", function(e) {
+      const form = e.target;
+      const name = form.name.value.trim();
+      const username = form.username.value.trim();
+      const school = form.school.value.trim();
+      const bio = form.bio.value.trim();
+      const password = form.password.value;
+      const confirm = form.password_confirm.value;
+      const photo = form.profile_photo.files.length;
+
+      const usernamePattern = /^[A-Za-z0-9_.\-]{3,24}$/;
+
+      if (!name || !username || !school || !bio || !password || !confirm || !photo) {
+        alert("Please fill in all required fields.");
+        e.preventDefault();
+        return;
+      }
+
+      if (!usernamePattern.test(username)) {
+        alert("Invalid username. Use 3–24 letters, numbers, dots, underscores, or hyphens.");
+        e.preventDefault();
+        return;
+      }
+
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        e.preventDefault();
+        return;
+      }
+
+      if (password !== confirm) {
+        alert("Passwords do not match.");
+        e.preventDefault();
+        return;
+      }
+
+      if (!photo) {
+        alert("Please upload a profile photo.");
+        e.preventDefault();
+      }
+    });
+  </script>
 </body>
 </html>
