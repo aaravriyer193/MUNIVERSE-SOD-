@@ -1,265 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Muniverse — Onboarding</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="/static/img/favicon.png" type="image/png">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-      --bg:#0b0b0d;
-      --panel:#121216;
-      --muted:#a6a6ad;
-      --text:#f3f3f7;
-      --accent:#ff6a00;
-      --accent-2:#ffa000;
-      --ring:rgba(255,106,0,.35);
-      --card:#111114;
-      --edge:#1b1b21;
-    }
+<meta charset="UTF-8" />
+<title>Muniverse — Where delegates connect beyond debate. A MUN social network</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="/static/img/favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
-    * { box-sizing:border-box; }
+<style>
+:root {
+  --bg:#0b0b0d;
+  --accent:#ff6a00;
+  --accent-2:#ffa000;
+  --text:#f3f3f7;
+  --muted:#a6a6ad;
+  --edge:#1b1b21;
+}
 
-    body {
-      margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial;
-      color:var(--text);
-      background:
-        radial-gradient(900px 500px at 110% -10%, rgba(255,106,0,.08), transparent 60%),
-        radial-gradient(700px 400px at -10% -10%, rgba(255,140,0,.08), transparent 60%),
-        var(--bg);
-      min-height:100dvh;
-      overflow-x:hidden;
-      animation:bgShift 30s ease-in-out infinite alternate;
-    }
+/* Basic resets */
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ font-family:Inter, sans-serif; color:var(--text); background:var(--bg); overflow-x:hidden; }
 
-    @keyframes bgShift {
-      0% { background-position: 0 0, 0 0, 0 0; }
-      100% { background-position: 40px 60px, -30px -20px, 0 0; }
-    }
+/* Hero styling */
+.hero{ position:relative; display:grid; place-items:center; padding:80px 16px 60px; text-align:center; overflow:hidden; min-height:100vh; }
+.hero-logo{ width:120px; height:120px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 0 40px rgba(255,106,0,.25); animation:pulse 4s ease-in-out infinite; }
+.hero-logo img{ width:80px; height:80px; object-fit:contain; filter:drop-shadow(0 0 15px rgba(255,140,0,.5)); }
+@keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(255,106,0,.25);}50%{box-shadow:0 0 80px rgba(255,140,0,.6);}}
 
-    .hero {
-      position:relative;
-      display:grid;
-      place-items:center;
-      padding:80px 18px 60px;
-      overflow:hidden;
-      text-align:center;
-    }
+.headline{ font-family:Kanit,Inter; font-weight:800; font-size:clamp(42px,5vw,80px); line-height:1.05; margin-bottom:12px; background:linear-gradient(90deg,var(--accent),#ffb86b); -webkit-background-clip:text; color:transparent; text-shadow:0 0 30px rgba(255,106,0,.4); animation:shine 8s linear infinite; background-size:200% auto; }
+@keyframes shine{0%{background-position:0% center;}100%{background-position:200% center;}}
+.sub{ color:var(--muted); font-size:clamp(15px,1.8vw,18px); max-width:780px; margin:0 auto 30px; }
 
-    .hero-logo {
-      width:120px; height:120px;
-      border-radius:50%;
-      overflow:hidden;
-      background: radial-gradient(circle at 50% 50%, rgba(255,106,0,.4), rgba(255,106,0,.1));
-      display:flex; align-items:center; justify-content:center;
-      margin-bottom:20px;
-      animation:pulse 4s ease-in-out infinite;
-      box-shadow:0 0 40px rgba(255,106,0,.25);
-      transform-style:preserve-3d;
-      transition:transform .3s ease;
-    }
+.actions{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.btn{ border-radius:12px; padding:12px 18px; font-weight:600; cursor:pointer; border:1px solid var(--edge); transition:.25s ease; text-decoration:none; display:inline-flex; align-items:center; gap:.5rem;}
+.btn-primary{ background:linear-gradient(180deg,var(--accent),#ff6a00); color:#fff; box-shadow:0 8px 25px rgba(255,106,0,.3);}
+.btn-primary:hover{ transform:translateY(-2px) scale(1.03); box-shadow:0 12px 35px rgba(255,106,0,.5);}
+.btn-ghost{ background:transparent; color:#fff; border-color:#ff7a1f;}
+.btn-ghost:hover{ background:rgba(255,106,0,.08); transform:translateY(-2px); }
 
-    .hero-logo img {
-      width:80px;
-      height:80px;
-      object-fit:contain;
-      filter:drop-shadow(0 0 10px rgba(255,106,0,.3));
-    }
+.stats{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin-top:40px; }
+.stat{ min-width:170px; text-align:center; padding:16px 18px; border-radius:14px; border:1px solid var(--edge); background:linear-gradient(180deg, rgba(255,106,0,.06), rgba(0,0,0,.0)); transition:.2s; }
+.stat:hover{ transform:scale(1.05); box-shadow:0 0 24px rgba(255,106,0,.2); }
+.stat b{ display:block; font-size:22px; font-family:Kanit,Inter; }
+.stat span{ color:var(--muted); }
 
-    .hero-logo:hover {
-      transform:rotateY(12deg) rotateX(6deg) scale(1.05);
-    }
+/* Big particle storm */
+.particle, .comet{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+}
+.particle{
+  width:6px; height:6px;
+  background:radial-gradient(circle, var(--accent-2), transparent 70%);
+  filter:blur(1px);
+  animation-name:floatParticle;
+  animation-timing-function:linear;
+  animation-iteration-count:infinite;
+}
+.comet{
+  width:2px; height:14px;
+  background:linear-gradient(var(--accent), transparent);
+  filter:blur(1px);
+  animation-name:floatComet;
+  animation-timing-function:linear;
+  animation-iteration-count:infinite;
+}
 
-    @keyframes pulse {
-      0%,100% { box-shadow:0 0 40px rgba(255,106,0,.25); }
-      50% { box-shadow:0 0 70px rgba(255,140,0,.4); }
-    }
+@keyframes floatParticle{
+  0%{ transform:translate(0,0) scale(1); opacity:0.2; }
+  50%{ opacity:0.9; }
+  100%{ transform:translate(30vw,-120vh) scale(0.5); opacity:0; }
+}
 
-    .headline {
-      font-family:Kanit,Inter;
-      font-weight:800;
-      line-height:1.05;
-      margin:0 auto 12px;
-      font-size:clamp(42px,4.8vw,70px);
-      max-width:980px;
-      background:linear-gradient(90deg,var(--accent),#ffb86b);
-      -webkit-background-clip:text;
-      color:transparent;
-      text-shadow:0 0 28px rgba(255,106,0,.3);
-      animation:shine 8s linear infinite;
-      background-size:200% auto;
-    }
-
-    @keyframes shine {
-      0% { background-position:0% center; }
-      100% { background-position:200% center; }
-    }
-
-    .sub {
-      color:var(--muted);
-      max-width:780px;
-      margin:0 auto 30px;
-      font-size:clamp(15px,1.8vw,18px);
-    }
-
-    .actions {
-      display:flex; gap:14px; justify-content:center; flex-wrap:wrap;
-    }
-
-    .btn {
-      border:1px solid var(--edge);
-      border-radius:12px;
-      padding:12px 18px;
-      font-weight:600;
-      text-decoration:none;
-      display:inline-flex; align-items:center; gap:.5rem;
-      transition:.25s ease;
-      cursor:pointer;
-    }
-
-    .btn-primary {
-      background:linear-gradient(180deg, var(--accent), #ff6a00);
-      box-shadow:0 8px 25px rgba(255,106,0,.3);
-      color:#fff;
-    }
-
-    .btn-primary:hover {
-      transform:translateY(-2px) scale(1.03);
-      box-shadow:0 12px 35px rgba(255,106,0,.45);
-    }
-
-    .btn-ghost {
-      background:transparent;
-      color:#fff;
-    }
-
-    .btn-ghost:hover {
-      background:rgba(255,106,0,.08);
-      border-color:#ff7a1f;
-      transform:translateY(-2px);
-    }
-
-    .stats {
-      display:flex;
-      gap:18px;
-      flex-wrap:wrap;
-      justify-content:center;
-      margin:40px 0 0;
-    }
-
-    .stat {
-      min-width:170px;
-      text-align:center;
-      padding:16px 18px;
-      border:1px solid var(--edge);
-      border-radius:14px;
-      background:linear-gradient(180deg, rgba(255,106,0,.06), rgba(0,0,0,.0));
-      transition:transform .2s ease, box-shadow .2s ease;
-    }
-
-    .stat:hover {
-      transform:scale(1.05);
-      box-shadow:0 0 24px rgba(255,106,0,.2);
-    }
-
-    .stat b {
-      font-size:22px;
-      font-family:Kanit,Inter;
-      display:block;
-    }
-
-    .stat span { color:var(--muted); }
-
-    /* floating orange spark particles */
-    .spark {
-      position:absolute;
-      width:4px; height:4px;
-      border-radius:50%;
-      background:radial-gradient(circle, var(--accent-2), transparent 70%);
-      animation:sparkFloat var(--t) linear infinite;
-      left:var(--l); top:var(--tp);
-      opacity:.8;
-      filter:blur(.4px);
-    }
-
-    @keyframes sparkFloat {
-      0% { transform:translateY(0); opacity:.2; }
-      60% { opacity:.9; }
-      100% { transform:translateY(-120vh) translateX(10vw); opacity:0; }
-    }
-
-    footer {
-      margin-top:50px;
-      padding:28px;
-      border-top:1px solid var(--edge);
-      text-align:center;
-      color:var(--muted);
-      font-size:14px;
-    }
-  </style>
+@keyframes floatComet{
+  0%{ transform:translate(0,0) rotate(45deg) scaleY(1); opacity:0; }
+  50%{ opacity:0.8; }
+  100%{ transform:translate(50vw,-120vh) rotate(45deg) scaleY(0.3); opacity:0; }
+}
+</style>
 </head>
-
 <body>
-  <section class="hero">
-    <!-- Floating spark particles -->
-    <div class="particles" aria-hidden="true">
-      <div class="spark" style="--l:10%;--tp:70%;--t:22s;"></div>
-      <div class="spark" style="--l:22%;--tp:66%;--t:18s;"></div>
-      <div class="spark" style="--l:30%;--tp:74%;--t:26s;"></div>
-      <div class="spark" style="--l:42%;--tp:80%;--t:24s;"></div>
-      <div class="spark" style="--l:50%;--tp:68%;--t:19s;"></div>
-      <div class="spark" style="--l:58%;--tp:78%;--t:21s;"></div>
-      <div class="spark" style="--l:66%;--tp:72%;--t:27s;"></div>
-      <div class="spark" style="--l:74%;--tp:76%;--t:23s;"></div>
-      <div class="spark" style="--l:82%;--tp:69%;--t:20s;"></div>
-      <div class="spark" style="--l:90%;--tp:77%;--t:25s;"></div>
-    </div>
+<section class="hero">
+  <!-- Particle container -->
+  <div id="particles"></div>
 
-    <!-- Logo with animation -->
-    <div class="hero-logo">
-      <img src="/static/img/favicon.png" alt="Muniverse Logo">
-    </div>
+  <!-- Logo -->
+  <div class="hero-logo"><img src="/static/img/favicon.png" alt="Muniverse Logo"></div>
+  <h1 class="headline">Where delegates connect beyond debate.</h1>
+  <p class="sub">Build your profile. Share committee moments. Discover conferences.<br>Muniverse is your hub for everything MUN — fast, social, and easy to share.</p>
 
-    <h1 class="headline">Where delegates connect beyond debate.</h1>
-    <p class="sub">
-      Build your profile. Share committee moments. Discover conferences.<br>
-      Muniverse is your hub for everything MUN — fast, social, and easy to share.
-    </p>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('signup') }}">Create Profile</a>
+    <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
+  </div>
 
-    <div class="actions">
-      <a class="btn btn-primary" href="{{ url_for('signup') }}">Create Profile</a>
-      <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
-    </div>
+  <div class="stats">
+    <div class="stat"><b>Instant</b><span>No login wall for guests</span></div>
+    <div class="stat"><b>Shareable</b><span>Clean URLs for posts</span></div>
+    <div class="stat"><b>Quick</b><span>MUNers now only need one platform</span></div>
+  </div>
+</section>
 
-    <div class="stats">
-      <div class="stat"><b>Instant</b><span>No login wall for guests</span></div>
-      <div class="stat"><b>Shareable</b><span>Clean URLs for posts</span></div>
-      <div class="stat"><b>Quick</b><span>MUNers now only need one platform</span></div>
-    </div>
-  </section>
+<script>
+// Generate lots of particles dynamically
+const particleContainer = document.getElementById('particles');
+const numParticles = 60;  // normal sparks
+const numComets = 15;     // long streaks
 
-  <footer>
-    Made with ☄️ by <b>Aarav Iyer</b> Press <span class="kbd">g</span><span class="kbd">g</span> to open Feed
-  </footer>
+for(let i=0;i<numParticles;i++){
+  const p = document.createElement('div');
+  p.className='particle';
+  p.style.left = Math.random()*100+'%';
+  p.style.top = Math.random()*100+'%';
+  p.style.animationDuration = (10+Math.random()*20)+'s';
+  p.style.width = 3+Math.random()*7+'px';
+  p.style.height = 3+Math.random()*7+'px';
+  particleContainer.appendChild(p);
+}
 
-  <script>
-    // Keyboard shortcut: g g -> go to Feed
-    (function(){
-      let last = 0;
-      document.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === 'g') {
-          const now = Date.now();
-          if (now - last < 600) {
-            window.location.href = "{{ url_for('feed') }}";
-          }
-          last = now;
-        }
-      });
-    })();
-  </script>
+for(let i=0;i<numComets;i++){
+  const c = document.createElement('div');
+  c.className='comet';
+  c.style.left = Math.random()*100+'%';
+  c.style.top = Math.random()*100+'%';
+  c.style.animationDuration = (8+Math.random()*15)+'s';
+  c.style.height = 10+Math.random()*25+'px';
+  particleContainer.appendChild(c);
+}
+</script>
 </body>
 </html>
