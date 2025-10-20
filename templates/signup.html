@@ -5,12 +5,12 @@
   <title>Signup — Muniverse</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="/static/img/favicon.png" type="image/png">
-  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  <link href="static/css/style.css" rel="stylesheet" />
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="{{ url_for('onboarding') }}">
-      <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+    <a class="logo" href="onboarding.html">
+      <img class="logo-image" src="static/img/favicon.png" alt="Muniverse Logo">
       <span>Muniverse</span>
     </a>  
   </header>
@@ -18,10 +18,10 @@
   <main class="container narrow">
     <h2 class="section-title">Create your profile</h2>
 
-    <form class="card form" id="signupForm" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data" novalidate>
+    <form class="card form" id="signupForm" action="signup.html" method="POST" enctype="multipart/form-data" novalidate>
       <div class="two-col">
         <label>Full Name
-          <input required name="name" placeholder="e.g., Aanya Kapoor" />
+          <input required name="name" placeholder="e.g., Jayson MUNs" />
         </label>
         <label>Username
           <input required name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_.\\-]{3,24}$" />
@@ -50,6 +50,11 @@
         <input type="file" name="profile_photo" accept="image/*" required />
         <small>Please ensure all details are correct <code>it will refresh</code> if there are any mistakes</small>
       </label>
+      
+      <label for="privacy-policy-agree">
+        <input type="checkbox" id="privacy-policy-agree" name="privacy_policy_agree" value="agreed" required>
+        I agree with the <a href="privacypolicy.html" target="_blank">Privacy Policy</a>.
+      </label>
 
       <button class="btn btn-primary" type="submit">Join Muniverse</button>
     </form>
@@ -65,6 +70,7 @@
       const password = form.password.value;
       const confirm = form.password_confirm.value;
       const photo = form.profile_photo.files.length;
+      const privacyCheck = form.privacy_policy_agree.checked;
 
       const usernamePattern = /^[A-Za-z0-9_.\-]{3,24}$/;
 
@@ -91,10 +97,11 @@
         e.preventDefault();
         return;
       }
-
-      if (!photo) {
-        alert("Please upload a profile photo.");
+      
+      if (!privacyCheck) {
+        alert("You must agree to the Privacy Policy to join.");
         e.preventDefault();
+        return;
       }
     });
   </script>
