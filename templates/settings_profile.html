@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Profile — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="{{ url_for('feed') }}">🌍 <span>Muniverse</span></a>
+  <nav class="nav">
+    <a href="{{ url_for('profile', username=user.username) }}">Back to Profile</a>
+  </nav>
+</header>
+
+<main class="container narrow">
+  <h2 class="section-title">Edit Profile</h2>
+  <form class="card form" method="POST" enctype="multipart/form-data">
+    <label>Full Name
+      <input name="name" value="{{ user.name }}" required />
+    </label>
+    <label>School / Institution
+      <input name="school" value="{{ user.school }}" required />
+    </label>
+    <label>Short Bio
+      <textarea name="bio" rows="3" required>{{ user.bio }}</textarea>
+    </label>
+
+    <div style="display:flex; gap:12px; align-items:center">
+      <img class="avatar-img" src="{{ url_for('static', filename=user.profile_pic) }}" alt="current avatar" />
+      <label style="flex:1">Change profile photo
+        <input type="file" name="profile_photo" accept="image/*" />
+        <small>Optional. If provided, will replace your current avatar.</small>
+      </label>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save Changes</button>
+  </form>
+</main>
+</body>
+</html>
