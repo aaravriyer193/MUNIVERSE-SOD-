@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Post #{{ post.id }} — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="{{ url_for('feed') }}">Muniverse</span></a>
+  <nav class="nav">
+    <a href="{{ url_for('profile', username=current_user.username) }}">Back to Profile</a>
+  </nav>
+</header>
+
+<main class="container narrow">
+  <h2 class="section-title">Edit Post</h2>
+  <form class="card form" method="POST" enctype="multipart/form-data">
+    <label>Caption
+      <textarea name="caption" rows="3" required>{{ post.caption }}</textarea>
+    </label>
+
+    <div class="two-col">
+      <div>
+        <label>Current image</label>
+        <img class="cover" src="{{ url_for('static', filename=post.image) }}" alt="Current image" />
+      </div>
+      <label>Replace image (optional)
+        <input type="file" name="image_file" accept="image/*" />
+        <small>If you choose a new image, it will replace the current one.</small>
+      </label>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a class="btn" href="{{ url_for('profile', username=current_user.username) }}">Cancel</a>
+      <form method="POST" action="{{ url_for('post_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this post?');">
+        <button class="btn btn-ghost" type="submit">Delete</button>
+      </form>
+    </div>
+  </form>
+</main>
+</body>
+</html>
