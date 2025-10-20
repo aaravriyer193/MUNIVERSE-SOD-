@@ -530,7 +530,14 @@ def forum_thread(slug):
 def about():
     return render_template("about.html")
 
+# -------------------- privacypolicy --------------------
+@app.route("/privacypolicy")
+def about()
+    return render_template("privacypolicy.html")
+
+
 # -------------------- Debug uploads --------------------
+
 @app.route("/_uploads")
 def _uploads():
     info = {
