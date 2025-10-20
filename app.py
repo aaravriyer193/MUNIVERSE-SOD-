@@ -120,6 +120,85 @@ def inject_user():
 # -----------------------------------------------------------------------------
 # Routes
 # -----------------------------------------------------------------------------
+@app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
+@login_required
+def post_edit(post_id):
+    posts = load_json(POSTS_FILE)
+    post = next((p for p in posts if p.get("id") == post_id), None)
+    if not post:
+        abort(404, "Post not found")
+
+    me = get_current_user()
+    if post.get("username") != me["username"]:
+        abort(403)
+
+    if request.method == "POST":
+        # caption
+        post["caption"] = (request.form.get("caption") or "").strip()
+
+        # optional new image
+        file = request.files.get("image_file")
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Invalid image type.", "error")
+                return redirect(url_for("post_edit", post_id=post_id))
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(POST_UPLOAD_DIR, filename))
+            post["image"] = f"img/posts/{filename}"
+
+        save_json(POSTS_FILE, posts)
+        flash("Post updated.", "ok")
+        return redirect(url_for("profile", username=me["username"]))
+
+    return render_template("post_edit.html", post=post)
+
+@app.route("/post/<int:post_id>/delete", methods=["POST"])
+@login_required
+def post_delete(post_id):
+    posts = load_json(POSTS_FILE)
+    idx = next((i for i,p in enumerate(posts) if p.get("id") == post_id), None)
+    if idx is None:
+        abort(404, "Post not found")
+
+    me = get_current_user()
+    if posts[idx].get("username") != me["username"]:
+        abort(403)
+
+    posts.pop(idx)
+    save_json(POSTS_FILE, posts)
+    flash("Post deleted.", "ok")
+    return redirect(url_for("profile", username=me["username"]))
+
+@app.route("/settings/profile", methods=["GET", "POST"])
+@login_required
+def settings_profile():
+    users = load_json(USERS_FILE)
+    me = get_current_user()
+
+    if request.method == "POST":
+        me["name"] = (request.form.get("name") or "").strip()
+        me["school"] = (request.form.get("school") or "").strip()
+        me["bio"] = (request.form.get("bio") or "").strip()
+
+        # optional new avatar
+        file = request.files.get("profile_photo")
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Invalid profile photo type.", "error")
+                return redirect(url_for("settings_profile"))
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit(".", 1)[1].lower()
+            final_name = f"{me['username']}.{ext}"
+            save_path = os.path.join(USER_UPLOAD_DIR, final_name)
+            file.save(save_path)
+            me["profile_pic"] = f"img/users/{final_name}"
+
+        save_user(users, me)
+        flash("Profile updated.", "ok")
+        return redirect(url_for("profile", username=me["username"]))
+
+    return render_template("settings_profile.html", user=me)
+
 @app.route("/")
 def onboarding():
     return render_template("onboarding.html")
