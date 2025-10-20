@@ -39,19 +39,57 @@ def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
 
 # -----------------------------------------------------------------------------
+# General Helpers
+# -----------------------------------------------------------------------------
+def delete_static_file(path_suffix: str):
+    """Safely delete a file from the static folder, avoiding defaults."""
+    if not path_suffix or "default.png" in path_suffix:
+        return
+    try:
+        abs_path = os.path.join(app.static_folder, path_suffix)
+        if os.path.exists(abs_path):
+            os.remove(abs_path)
+    except Exception as e:
+        app.logger.error(f"Error deleting file {path_suffix}: {e}")
+
+def slugify(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = re.sub(r"[^a-z0-9\s-]", "", s)
+    s = re.sub(r"\s+", "-", s)
+    s = re.sub(r"-{2,}", "-", s)
+    return s[:80] or "topic"
+
+# -----------------------------------------------------------------------------
 # JSON helpers
 # -----------------------------------------------------------------------------
 def load_json(path):
     if not os.path.exists(path) or os.path.getsize(path) == 0:
         return []
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return []
 
 def save_json(path, data):
     tmp = f"{path}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     os.replace(tmp, path)
+
+def next_id(items):
+    """Robustly gets the next integer ID from a list of dicts."""
+    if not items:
+        return 1
+    max_id = 0
+    for item in items:
+        try:
+            item_id = int(item.get("id", 0))
+            if item_id > max_id:
+                max_id = item_id
+        except (ValueError, TypeError):
+            continue
+    return max_id + 1
 
 # --- users helpers ---
 def find_user(users, username):
@@ -82,17 +120,6 @@ def get_post_by_id(post_id: int):
 
 def save_posts(posts):
     save_json(POSTS_FILE, posts)
-
-# --- forum helpers ---
-def next_id(items):
-    return (max((x.get("id", 0) for x in items), default=0) + 1) if items else 1
-
-def slugify(s: str) -> str:
-    s = (s or "").strip().lower()
-    s = re.sub(r"[^a-z0-9\s-]", "", s)
-    s = re.sub(r"\s+", "-", s)
-    s = re.sub(r"-{2,}", "-", s)
-    return s[:80] or "topic"
 
 # -----------------------------------------------------------------------------
 # Auth helpers
@@ -128,27 +155,27 @@ def post_edit(post_id):
     if not post:
         abort(404, "Post not found")
 
-    me = get_current_user()
-    if post.get("username") != me["username"]:
+    if post.get("username") != session["username"]:
         abort(403)
 
     if request.method == "POST":
-        # caption
         post["caption"] = (request.form.get("caption") or "").strip()
 
-        # optional new image
         file = request.files.get("image_file")
         if file and file.filename:
             if not allowed_file(file.filename):
                 flash("Invalid image type.", "error")
                 return redirect(url_for("post_edit", post_id=post_id))
+
+            old_image_path = post.get("image")
             filename = secure_filename(file.filename)
             file.save(os.path.join(POST_UPLOAD_DIR, filename))
             post["image"] = f"img/posts/{filename}"
+            delete_static_file(old_image_path)
 
         save_json(POSTS_FILE, posts)
         flash("Post updated.", "ok")
-        return redirect(url_for("profile", username=me["username"]))
+        return redirect(url_for("profile", username=session["username"]))
 
     return render_template("post_edit.html", post=post)
 
@@ -156,42 +183,48 @@ def post_edit(post_id):
 @login_required
 def post_delete(post_id):
     posts = load_json(POSTS_FILE)
-    idx = next((i for i,p in enumerate(posts) if p.get("id") == post_id), None)
+    idx = next((i for i, p in enumerate(posts) if p.get("id") == post_id), None)
     if idx is None:
         abort(404, "Post not found")
 
-    me = get_current_user()
-    if posts[idx].get("username") != me["username"]:
+    post_to_delete = posts[idx]
+    if post_to_delete.get("username") != session["username"]:
         abort(403)
 
+    delete_static_file(post_to_delete.get("image"))
     posts.pop(idx)
     save_json(POSTS_FILE, posts)
     flash("Post deleted.", "ok")
-    return redirect(url_for("profile", username=me["username"]))
+    return redirect(url_for("profile", username=session["username"]))
 
 @app.route("/settings/profile", methods=["GET", "POST"])
 @login_required
 def settings_profile():
     users = load_json(USERS_FILE)
-    me = get_current_user()
+    me = find_user(users, session["username"])
+    if not me:
+        session.clear()
+        abort(403)
 
     if request.method == "POST":
         me["name"] = (request.form.get("name") or "").strip()
         me["school"] = (request.form.get("school") or "").strip()
         me["bio"] = (request.form.get("bio") or "").strip()
 
-        # optional new avatar
         file = request.files.get("profile_photo")
         if file and file.filename:
             if not allowed_file(file.filename):
                 flash("Invalid profile photo type.", "error")
                 return redirect(url_for("settings_profile"))
+
+            old_pic_path = me.get("profile_pic")
             filename = secure_filename(file.filename)
             ext = filename.rsplit(".", 1)[1].lower()
             final_name = f"{me['username']}.{ext}"
             save_path = os.path.join(USER_UPLOAD_DIR, final_name)
             file.save(save_path)
             me["profile_pic"] = f"img/users/{final_name}"
+            delete_static_file(old_pic_path)
 
         save_user(users, me)
         flash("Profile updated.", "ok")
@@ -245,8 +278,7 @@ def signup():
             flash("Passwords do not match.", "error")
             return redirect(url_for("signup"))
 
-        # OPTIONAL profile photo
-        photo_path = (request.form.get("profile_pic") or "").strip()
+        photo_path = "img/users/default.png"
         file = request.files.get("profile_photo")
         if file and file.filename:
             if not allowed_file(file.filename):
@@ -257,8 +289,6 @@ def signup():
             final_name = f"{username}.{ext}"
             file.save(os.path.join(USER_UPLOAD_DIR, final_name))
             photo_path = f"img/users/{final_name}"
-        if not photo_path:
-            photo_path = "img/users/default.png"  # ensure this exists in static/img/users
 
         new_user = {
             "name": name,
@@ -283,7 +313,11 @@ def signup():
 @login_required
 def settings_password():
     users = load_json(USERS_FILE)
-    me = get_current_user()
+    me = find_user(users, session["username"])
+    if not me:
+        session.clear()
+        abort(403)
+
     if request.method == "POST":
         old = (request.form.get("old_password") or "").strip()
         new = (request.form.get("new_password") or "").strip()
@@ -312,18 +346,19 @@ def explore():
             return q in cap or q in user
         posts = [p for p in posts if hit(p)]
     posts = [normalize_post(p) for p in posts]
-    posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
+    posts.sort(key=lambda x: x.get("id", 0), reverse=True)
     return render_template("explore.html", posts=posts, q=q)
 
 @app.route("/feed")
 def feed():
     posts = load_json(POSTS_FILE)
     posts = [normalize_post(p) for p in posts]
-    posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
+    posts.sort(key=lambda x: x.get("id", 0), reverse=True)
     return render_template("feed.html", posts=posts)
 
 @app.route("/post/<int:post_id>")
 def post(post_id):
+    # Using get_post_by_id is slightly inefficient here as we don't need the whole list
     posts = load_json(POSTS_FILE)
     item = next((p for p in posts if p.get("id") == post_id), None)
     if not item:
@@ -339,20 +374,21 @@ def addpost():
         user = get_current_user()
         posts = load_json(POSTS_FILE)
 
-        caption  = (request.form.get("caption")  or "").strip()
+        caption = (request.form.get("caption") or "").strip()
         file = request.files.get("image_file")
         if not file or not file.filename:
-            return "No image uploaded. Ensure the input is name='image_file' and form has enctype='multipart/form-data'.", 400
+            flash("An image file is required.", "error")
+            return redirect(url_for("addpost"))
         if not allowed_file(file.filename):
-            return "Invalid image type. Allowed: png, jpg, jpeg, gif, webp.", 400
+            flash("Invalid image type. Allowed: png, jpg, jpeg, gif, webp.", "error")
+            return redirect(url_for("addpost"))
 
-        filename  = secure_filename(file.filename)
+        filename = secure_filename(file.filename)
         file.save(os.path.join(POST_UPLOAD_DIR, filename))
         image_path = f"img/posts/{filename}"
 
-        new_id = (posts[-1]["id"] + 1) if posts else 1
         new_post = {
-            "id": new_id,
+            "id": next_id(posts),
             "username": user["username"],
             "caption": caption,
             "image": image_path,
@@ -400,17 +436,18 @@ def comment_post(post_id):
         return jsonify({"ok": False, "error": "post_not_found"}), 404
 
     post = normalize_post(post)
-    new_id = (post["comments"][-1]["id"] + 1) if post["comments"] else 1
+    new_id = next_id(post["comments"])
     ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    post["comments"].append({
+    comment_data = {
         "id": new_id,
         "username": user["username"],
         "text": text,
         "ts": ts
-    })
+    }
+    post["comments"].append(comment_data)
     save_posts(posts)
-    return jsonify({"ok": True, "comment": {"id": new_id, "username": user["username"], "text": text, "ts": ts}, "count": len(post["comments"])})
+    return jsonify({"ok": True, "comment": comment_data, "count": len(post["comments"])})
 
 # -------------------- Conferences --------------------
 @app.route("/conferences")
@@ -418,7 +455,7 @@ def conferences():
     confs = load_json(CONF_FILE)
     return render_template("conferences.html", conferences=confs)
 
-@app.route("/conference/<conf_id>")
+@app.route("/conference/<int:conf_id>")
 def conference(conf_id):
     confs = load_json(CONF_FILE)
     conf = next((c for c in confs if c.get("id") == conf_id), None)
@@ -430,27 +467,36 @@ def conference(conf_id):
 @login_required
 def addconference():
     if request.method == "POST":
-        confs = load_json(CONF_FILE)
-        tags_raw = request.form.get("tags", "")
+        name = (request.form.get("name") or "").strip()
+        date = (request.form.get("date") or "").strip()
+        location = (request.form.get("location") or "").strip()
+
+        if not all([name, date, location]):
+            flash("Name, date, and location are required.", "error")
+            return redirect(url_for("addconference"))
 
         file = request.files.get("banner_file")
         if not file or not file.filename:
-            return "No banner uploaded. Ensure the input is name='banner_file' and form has enctype='multipart/form-data'.", 400
+            flash("A banner image is required.", "error")
+            return redirect(url_for("addconference"))
         if not allowed_file(file.filename):
-            return "Invalid banner type. Allowed: png, jpg, jpeg, gif, webp.", 400
+            flash("Invalid banner type. Allowed: png, jpg, jpeg, gif, webp.", "error")
+            return redirect(url_for("addconference"))
 
-        filename  = secure_filename(file.filename)
+        filename = secure_filename(file.filename)
         file.save(os.path.join(CONF_UPLOAD_DIR, filename))
         banner_path = f"img/conferences/{filename}"
 
+        confs = load_json(CONF_FILE)
+        tags_raw = request.form.get("tags", "")
         new_conf = {
-            "id":   (request.form.get("id") or "").strip(),
-            "name": (request.form.get("name") or "").strip(),
-            "date": (request.form.get("date") or "").strip(),
-            "location": (request.form.get("location") or "").strip(),
+            "id":   next_id(confs),
+            "name": name,
+            "date": date,
+            "location": location,
             "description": (request.form.get("description") or "").strip(),
             "banner": banner_path,
-            "tags": [t.strip() for t in tags_raw.split(",")] if tags_raw else []
+            "tags": [t.strip() for t in tags_raw.split(",") if t.strip()]
         }
         confs.append(new_conf)
         save_json(CONF_FILE, confs)
@@ -500,13 +546,15 @@ def follow(username):
 @app.route("/profile/<username>")
 def profile(username):
     users = load_json(USERS_FILE)
-    posts = load_json(POSTS_FILE)
     user = find_user(users, username)
     if not user:
         abort(404, "User not found")
+    posts = load_json(POSTS_FILE)
+
     user.setdefault("followers", [])
     user.setdefault("following", [])
     user_posts = [normalize_post(p) for p in posts if p.get("username") == username]
+    user_posts.sort(key=lambda p: p.get("id", 0), reverse=True)
     return render_template("profile.html", user=user, posts=user_posts)
 
 # -------------------- Forums --------------------
@@ -516,22 +564,27 @@ def forums():
     q = (request.args.get("q") or "").strip().lower()
     tag = (request.args.get("tag") or "").strip().lower()
 
+    filtered_threads = threads
     if q:
         def hit(t):
-            return q in (t.get("title","").lower() + " " + t.get("body","").lower() + " " + " ".join(t.get("tags",[])).lower())
-        threads = [t for t in threads if hit(t)]
+            content = " ".join([
+                t.get("title", ""),
+                t.get("body", ""),
+                " ".join(t.get("tags", []))
+            ]).lower()
+            return q in content
+        filtered_threads = [t for t in filtered_threads if hit(t)]
     if tag:
-        threads = [t for t in threads if tag in [x.lower() for x in t.get("tags", [])]]
+        filtered_threads = [t for t in filtered_threads if tag in [x.lower() for x in t.get("tags", [])]]
 
-    threads = sorted(threads, key=lambda t: t.get("created_ts", 0), reverse=True)
-    return render_template("forums.html", threads=threads, q=q, tag=tag)
+    filtered_threads.sort(key=lambda t: t.get("created_ts", 0), reverse=True)
+    return render_template("forums.html", threads=filtered_threads, q=q, tag=tag)
 
 @app.route("/forums/new", methods=["GET", "POST"])
 @login_required
 def forum_new():
     if request.method == "POST":
         me = get_current_user()
-        threads = load_json(FORUM_THREADS)
         title = (request.form.get("title") or "").strip()
         body  = (request.form.get("body") or "").strip()
         tags_raw = (request.form.get("tags") or "").strip()
@@ -540,6 +593,7 @@ def forum_new():
             flash("Title and body are required.", "error")
             return redirect(url_for("forum_new"))
 
+        threads = load_json(FORUM_THREADS)
         tid = next_id(threads)
         slug = f"{slugify(title)}-{tid}"
         thread = {
@@ -562,13 +616,12 @@ def forum_new():
 @app.route("/forums/<slug>", methods=["GET", "POST"])
 def forum_thread(slug):
     threads = load_json(FORUM_THREADS)
-    replies = load_json(FORUM_REPLIES)
-
-    thread = next((t for t in threads if t.get("slug") == slug or str(t.get("id")) == slug), None)
-    if not thread:
+    thread_idx = next((i for i,t in enumerate(threads) if t.get("slug") == slug or str(t.get("id")) == slug), None)
+    if thread_idx is None:
         abort(404, "Thread not found")
+    thread = threads[thread_idx]
 
-    # increment views
+    # Increment views and save immediately
     thread["views"] = int(thread.get("views", 0)) + 1
     save_json(FORUM_THREADS, threads)
 
@@ -583,9 +636,9 @@ def forum_thread(slug):
             flash("Reply cannot be empty.", "error")
             return redirect(url_for("forum_thread", slug=slug))
 
-        rid = next_id(replies)
+        replies = load_json(FORUM_REPLIES)
         reply = {
-            "id": rid,
+            "id": next_id(replies),
             "thread_id": thread["id"],
             "author": me["username"],
             "text": text,
@@ -597,26 +650,26 @@ def forum_thread(slug):
         thread["replies"] = int(thread.get("replies", 0)) + 1
         save_json(FORUM_THREADS, threads)
 
+        flash("Reply posted.", "ok")
         return redirect(url_for("forum_thread", slug=slug))
 
-    thread_replies = [r for r in replies if r.get("thread_id") == thread["id"]]
-    thread_replies = sorted(thread_replies, key=lambda r: r.get("created_ts", 0))
+    all_replies = load_json(FORUM_REPLIES)
+    thread_replies = [r for r in all_replies if r.get("thread_id") == thread["id"]]
+    thread_replies.sort(key=lambda r: r.get("created_ts", 0))
     return render_template("forum_thread.html", thread=thread, replies=thread_replies)
 
 
-# -------------------- About --------------------
+# -------------------- Static Pages --------------------
 @app.route("/about")
 def about():
     return render_template("about.html")
 
-# -------------------- privacypolicy --------------------
 @app.route("/privacypolicy")
-def about()
+def privacypolicy():
     return render_template("privacypolicy.html")
 
 
 # -------------------- Debug uploads --------------------
-
 @app.route("/_uploads")
 def _uploads():
     info = {
