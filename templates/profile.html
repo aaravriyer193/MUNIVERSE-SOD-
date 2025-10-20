@@ -10,16 +10,19 @@
 <body>
   <header class="topbar">
     <a class="logo" href="{{ url_for('feed') }}">
-    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
-    <span>Muniverse</span>
+      <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+      <span>Muniverse</span>
     </a>
+
+    <!-- hamburger -->
     <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="Toggle navigation">
-  <label for="menu-toggle" class="hamburger">
-    <span class="bar top-bar"></span>
-    <span class="bar middle-bar"></span>
-    <span class="bar bottom-bar"></span>
-  </label>
-      <nav class="nav">
+    <label for="menu-toggle" class="hamburger">
+      <span class="bar top-bar"></span>
+      <span class="bar middle-bar"></span>
+      <span class="bar bottom-bar"></span>
+    </label>
+
+    <nav class="nav">
       <a href="{{ url_for('feed') }}">Home</a>
       <a href="{{ url_for('explore') }}">Explore</a>
       <a href="{{ url_for('forums') }}">Forums</a>
@@ -57,6 +60,7 @@
               <div class="actions">
                 <a class="btn" href="{{ url_for('addconference') }}">Make a Conference</a>
                 <a class="btn btn-primary" href="{{ url_for('addpost') }}">Add Post</a>
+                <a class="btn btn-secondary" href="{{ url_for('settings_profile') }}">Edit Profile</a>
               </div>
             {% else %}
               <form id="followForm" class="actions" method="post" action="{{ url_for('follow', username=user.username) }}">
@@ -87,16 +91,27 @@
       {% else %}
         <div class="grid">
           {% for post in posts %}
-            <a class="card hoverable" href="{{ url_for('post', post_id=post.id) }}">
-              <img class="cover" src="{{ url_for('static', filename=post.image) }}" alt="Post image" loading="lazy" />
+            <div class="card hoverable">
+              <a href="{{ url_for('post', post_id=post.id) }}">
+                <img class="cover" src="{{ url_for('static', filename=post.image) }}" alt="Post image" loading="lazy" />
+              </a>
               <div class="pad-sm">
                 <p class="caption clamp-2">{{ post.caption }}</p>
                 <div class="meta">
                   <span>❤️ {{ post.likes }}</span>
                   <span>💬 {{ post.comments|length }}</span>
                 </div>
+
+                {% if current_user and current_user.username == user.username %}
+                  <div class="actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+                    <a class="btn" href="{{ url_for('post_edit', post_id=post.id) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('post_delete', post_id=post.id) }}" onsubmit="return confirm('Delete this post? This cannot be undone.');">
+                      <button class="btn btn-ghost" type="submit">Delete</button>
+                    </form>
+                  </div>
+                {% endif %}
               </div>
-            </a>
+            </div>
           {% endfor %}
         </div>
       {% endif %}
@@ -105,7 +120,7 @@
 
   {% if current_user and current_user.username != user.username %}
   <script>
-    // Progressive enhancement: AJAX follow/unfollow (optional; form POST still works)
+    // AJAX follow/unfollow (progressive enhancement)
     const form = document.getElementById('followForm');
     const btn  = document.getElementById('followBtn');
     if (form && btn) {
@@ -117,10 +132,8 @@
           const data = await res.json();
           if (data.ok) {
             btn.textContent = (data.action === 'followed') ? 'Following' : '+ Follow';
-            // Optionally update counts in DOM:
-            // find the first <b> (followers) and update textContent = data.followers
-            const b = document.querySelector('.meta b');
-            if (b) b.textContent = data.followers;
+            const followerCount = document.querySelector('.meta b');
+            if (followerCount) followerCount.textContent = data.followers;
           }
         } catch (err) { console.error(err); }
         finally { btn.disabled = false; }
