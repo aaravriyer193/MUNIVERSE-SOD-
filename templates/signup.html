@@ -69,10 +69,14 @@
                 <small>Please ensure all details are correct. The page will refresh if there are any mistakes.</small>
             </div>
   
-                 <label class="form-check-label">
-  <input type="checkbox" id="privacy-policy-agree" name="privacy_policy_agree" required>
-  I agree with the <a href="{{ url_for('privacypolicy') }}" target="_blank">Privacy Policy</a>.
-</label>
+                <div style="text-align: left;">
+  <label class="form-check-label" style="display: inline-flex; align-items: center; gap: 6px;">
+    <input type="checkbox" id="privacy-policy-agree" name="privacy_policy_agree" required>
+    <span>I agree with the <a href="{{ url_for('privacypolicy') }}" target="_blank">Privacy Policy</a>.</span>
+  </label>
+</div>
+
+
 
             <button class="btn btn-primary" type="submit">Join Muniverse</button>
         </form>
