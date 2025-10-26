@@ -9,5 +9,16 @@
     "attendingConferences": [],
     "followers": [],
     "following": []
+  },
+  {
+    "name": "Aarav Iyer",
+    "username": "32rr4",
+    "school": "Gems Modern Academy",
+    "bio": "44t4",
+    "profile_pic": "img/users/32rr4.png",
+    "password_hash": "scrypt:32768:8:1$CEcVac4QNLxOA5f2$c317f26b6da0e8f10fdfc6b5a971b372a4fe7676653440777ae7a8ff4cf47484537edf82b0a1d655fc303782b18e985bcdb36bb76711c798b5b6b06ee0ddd052",
+    "attendingConferences": [],
+    "followers": [],
+    "following": []
   }
 ]
