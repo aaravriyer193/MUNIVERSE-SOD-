@@ -1,99 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Signup — Muniverse</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}" type="image/png">
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  <meta charset="UTF-8" />
+  <title>Signup — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}" type="image/png">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+
+  <style>
+    /* Wizard shell */
+    .wizard { display:grid; gap:14px; }
+    .steps { display:flex; align-items:center; gap:10px; }
+    .step-dot {
+      width:10px; height:10px; border-radius:999px; background:#3a3a3a; border:1px solid #555;
+      transition:transform .2s ease;
+    }
+    .step-dot.active { background:var(--accent); border-color:var(--accent); transform:scale(1.15); }
+    .progress {
+      height:8px; background:#1f1f1f; border:1px solid #2c2c2c; border-radius:999px; overflow:hidden;
+    }
+    .progress > div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .25s ease; }
+
+    .wizard-nav { display:flex; justify-content:space-between; gap:10px; margin-top:6px; }
+    .wizard-nav .left { display:flex; gap:10px; }
+    .wizard-nav .right { display:flex; gap:10px; }
+
+    .step { display:none; }
+    .step.active { display:block; }
+
+    .flashes { display:grid; gap:8px; }
+    .flash { padding:10px 12px; border-radius:10px; }
+    .flash-error { background:#2b1414; border:1px solid #5f2a2a; color:#f6d3d3; }
+    .flash-warn  { background:#2b2714; border:1px solid #5f552a; color:#f3e8c8; }
+    .flash-ok    { background:#142b19; border:1px solid #2a5f3a; color:#cdf6dd; }
+
+    /* Photo preview area */
+    .photo-wrap { display:flex; gap:14px; align-items:center; }
+    .photo-preview {
+      width:96px; height:96px; border-radius:16px; object-fit:cover;
+      border:1px solid #2e2e2e; background:#000;
+    }
+
+    /* Review grid */
+    .review { display:grid; gap:10px; }
+    .review-row { display:grid; grid-template-columns:140px 1fr; gap:8px; }
+    @media (max-width:560px){ .review-row { grid-template-columns:1fr; } }
+
+    /* Small helper */
+    .muted { color:var(--muted); font-size:14px; }
+  </style>
 </head>
 <body>
-    <header class="topbar">
-        <a class="logo" href="{{ url_for('onboarding') }}">
-            <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
-            <span>Muniverse</span>
-        </a>
-    </header>
+<header class="topbar">
+  <a class="logo" href="{{ url_for('onboarding') }}">
+    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+    <span>Muniverse</span>
+  </a>
+</header>
 
-    <main class="container narrow">
-        <h2 class="section-title">Create your profile</h2>
+<main class="container narrow">
+  <h2 class="section-title">Create your profile</h2>
 
-        {# This block displays server-side error messages from Flask (e.g., "Username taken") #}
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flashes">
-            {% for category, message in messages %}
-              <div class="flash flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
-        <form class="card form" id="signupForm" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data">
-            <div class="two-col">
-                <div>
-                    <label for="name-input">Full Name</label>
-                    <input id="name-input" required name="name" placeholder="e.g., Jayson MUNs" />
-                </div>
-                <div>
-                    <label for="username-input">Username</label>
-                    <input id="username-input" required name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_.\\-]{3,24}$" />
-                    <small>3–24 chars, letters/numbers/._-</small>
-                </div>
-            </div>
+  <form class="card form wizard" id="signupForm" action="{{ url_for('signup') }}" method="POST" enctype="multipart/form-data" novalidate>
+    <!-- Progress + step dots -->
+    <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+    <div class="steps" aria-label="Signup steps">
+      <span class="step-dot active" data-step="0"></span>
+      <span class="step-dot" data-step="1"></span>
+      <span class="step-dot" data-step="2"></span>
+      <span class="step-dot" data-step="3"></span>
+    </div>
 
-            <div>
-                <label for="school-input">School / Institution</label>
-                <input id="school-input" required name="school" placeholder="e.g., Horizon International School" />
-            </div>
+    <!-- STEP 1: Account -->
+    <section class="step active" data-step="0" aria-labelledby="step1-title">
+      <h3 id="step1-title" class="section-title">Account</h3>
+      <div class="two-col">
+        <div>
+          <label for="name-input">Full Name</label>
+          <input id="name-input" name="name" placeholder="e.g., Jayson MUNs" required />
+        </div>
+        <div>
+          <label for="username-input">Username</label>
+          <input id="username-input" name="username" placeholder="e.g., aank" pattern="^[A-Za-z0-9_.\-]{3,24}$" required />
+          <small class="muted">3–24 chars, letters/numbers/._-</small>
+        </div>
+      </div>
 
-            <div>
-                <label for="bio-input">Short Bio</label>
-                <textarea id="bio-input" required name="bio" rows="3" placeholder="Delegate, council interests, awards..."></textarea>
-            </div>
+      <div class="two-col">
+        <div>
+          <label for="password-input">Password</label>
+          <input id="password-input" name="password" type="password" minlength="6" placeholder="min 6 characters" required>
+          <small id="pw-hint" class="muted">Use 8+ chars with letters & numbers for a stronger password.</small>
+        </div>
+        <div>
+          <label for="confirm-input">Confirm Password</label>
+          <input id="confirm-input" name="password_confirm" type="password" minlength="6" placeholder="retype password" required>
+        </div>
+      </div>
+    </section>
 
-            <div class="two-col">
-                <div>
-                    <label for="password-input">Password</label>
-                    <input id="password-input" name="password" type="password" required minlength="6" placeholder="min 6 characters">
-                </div>
-                <div>
-                    <label for="confirm-input">Confirm Password</label>
-                    <input id="confirm-input" name="password_confirm" type="password" required minlength="6" placeholder="retype password">
-                </div>
-            </div>
+    <!-- STEP 2: School & Bio -->
+    <section class="step" data-step="1" aria-labelledby="step2-title">
+      <h3 id="step2-title" class="section-title">School & Bio</h3>
+      <label for="school-input">School / Institution</label>
+      <input id="school-input" name="school" placeholder="e.g., Horizon International School" required />
 
-            <div>
-                <label for="photo-input">Profile photo (required)</label>
-                <input id="photo-input" type="file" name="profile_photo" accept="image/*" required />
-                <small>Please ensure all details are correct. The page will refresh if there are any mistakes.</small>
-            </div>
-  
-                <div style="text-align: left;">
-  <label class="form-check-label" style="display: inline-flex; align-items: center; gap: 6px;">
-    <input type="checkbox" id="privacy-policy-agree" name="privacy_policy_agree" required>
-    <span>I agree with the <a href="{{ url_for('privacypolicy') }}" target="_blank">Privacy Policy</a>.</span>
-  </label>
-</div>
+      <label for="bio-input">Short Bio</label>
+      <textarea id="bio-input" name="bio" rows="3" placeholder="Delegate, council interests, awards..." required></textarea>
+      <small class="muted">Tip: Mention councils you enjoy (UNSC/DISEC/ECOSOC), prior awards, or areas of interest.</small>
+    </section>
 
+    <!-- STEP 3: Profile Photo -->
+    <section class="step" data-step="2" aria-labelledby="step3-title">
+      <h3 id="step3-title" class="section-title">Profile Photo</h3>
+      <div class="photo-wrap">
+        <img id="photoPreview" class="photo-preview" src="{{ url_for('static', filename='img/users/default.png') }}" alt="Preview">
+        <div style="flex:1">
+          <label for="photo-input">Upload image</label>
+          <input id="photo-input" type="file" name="profile_photo" accept="image/*" required />
+          <small class="muted">Square images look best. We’ll auto-fit your image into a square avatar.</small>
+        </div>
+      </div>
+    </section>
 
+    <!-- STEP 4: Review & Submit -->
+    <section class="step" data-step="3" aria-labelledby="step4-title">
+      <h3 id="step4-title" class="section-title">Review & Submit</h3>
 
-            <button class="btn btn-primary" type="submit">Join Muniverse</button>
-        </form>
-    </main>
+      <div class="review card pad">
+        <div class="review-row">
+          <div class="muted">Full Name</div>
+          <div id="rev-name">—</div>
+        </div>
+        <div class="review-row">
+          <div class="muted">Username</div>
+          <div id="rev-username">—</div>
+        </div>
+        <div class="review-row">
+          <div class="muted">School</div>
+          <div id="rev-school">—</div>
+        </div>
+        <div class="review-row">
+          <div class="muted">Bio</div>
+          <div id="rev-bio">—</div>
+        </div>
+        <div class="review-row">
+          <div class="muted">Photo</div>
+          <div><img id="rev-photo" class="photo-preview" src="{{ url_for('static', filename='img/users/default.png') }}" alt="Preview"></div>
+        </div>
+      </div>
 
-    <script>
-        document.getElementById("signupForm").addEventListener("submit", function(e) {
-            const passwordInput = document.getElementById("password-input");
-            const confirmInput = document.getElementById("confirm-input");
+      <label class="form-check-label" style="display:inline-flex; align-items:center; gap:6px; margin-top:12px;">
+        <input type="checkbox" id="privacy-policy-agree" name="privacy_policy_agree" required>
+        <span>I agree with the <a href="{{ url_for('privacypolicy') }}" target="_blank">Privacy Policy</a>.</span>
+      </label>
+    </section>
 
-            // Check if passwords match. The browser handles other validations (required, pattern, etc.).
-            if (passwordInput.value !== confirmInput.value) {
-                alert("Passwords do not match.");
-                e.preventDefault(); // Prevent form submission
-                return;
-            }
-        });
-    </script>
+    <!-- Wizard controls -->
+    <div class="wizard-nav">
+      <div class="left">
+        <button class="btn" type="button" id="btnBack">Back</button>
+      </div>
+      <div class="right">
+        <button class="btn btn-secondary" type="button" id="btnSaveDraft">Save draft</button>
+        <button class="btn btn-primary" type="button" id="btnNext">Next</button>
+        <button class="btn btn-primary" type="submit" id="btnSubmit" style="display:none;">Join Muniverse</button>
+      </div>
+    </div>
+  </form>
+</main>
+
+<script>
+  // Elements
+  const form = document.getElementById('signupForm');
+  const steps = Array.from(document.querySelectorAll('.step'));
+  const dots  = Array.from(document.querySelectorAll('.step-dot'));
+  const progressBar = document.getElementById('progressBar');
+  const btnBack   = document.getElementById('btnBack');
+  const btnNext   = document.getElementById('btnNext');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const btnDraft  = document.getElementById('btnSaveDraft');
+
+  const nameInput = document.getElementById('name-input');
+  const userInput = document.getElementById('username-input');
+  const pwInput   = document.getElementById('password-input');
+  const cfmInput  = document.getElementById('confirm-input');
+  const schoolInput = document.getElementById('school-input');
+  const bioInput    = document.getElementById('bio-input');
+  const photoInput  = document.getElementById('photo-input');
+
+  const photoPreview = document.getElementById('photoPreview');
+  const revName = document.getElementById('rev-name');
+  const revUser = document.getElementById('rev-username');
+  const revSchool = document.getElementById('rev-school');
+  const revBio = document.getElementById('rev-bio');
+  const revPhoto = document.getElementById('rev-photo');
+
+  let step = 0;
+  const total = steps.length;
+
+  function setStep(n){
+    step = Math.max(0, Math.min(total-1, n));
+    steps.forEach((s,i)=> s.classList.toggle('active', i===step));
+    dots.forEach((d,i)=> d.classList.toggle('active', i<=step));
+    const pct = ((step)/(total-1))*100;
+    progressBar.style.width = pct + '%';
+    btnBack.style.visibility = (step===0) ? 'hidden' : 'visible';
+    btnNext.style.display    = (step===total-1) ? 'none' : 'inline-flex';
+    btnSubmit.style.display  = (step===total-1) ? 'inline-flex' : 'none';
+  }
+  setStep(0);
+
+  function validateStep(s){
+    // Basic per-step validation
+    if (s===0){
+      if (!nameInput.value.trim()) { alert("Please enter your full name."); return false; }
+      if (!userInput.value.trim() || !userInput.checkValidity()) { alert("Please enter a valid username (3–24 chars, letters/numbers/._-)."); return false; }
+      if (!pwInput.value || !cfmInput.value) { alert("Please enter and confirm your password."); return false; }
+      if (pwInput.value !== cfmInput.value){ alert("Passwords do not match."); return false; }
+      if (pwInput.value.length < 6){ alert("Password should be at least 6 characters."); return false; }
+    }
+    if (s===1){
+      if (!schoolInput.value.trim()){ alert("Please enter your school."); return false; }
+      if (!bioInput.value.trim()){ alert("Please enter a short bio."); return false; }
+    }
+    if (s===2){
+      if (!photoInput.files || !photoInput.files[0]){ alert("Please select a profile photo."); return false; }
+    }
+    return true;
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (!validateStep(step)) return;
+    setStep(step+1);
+    if (step===3) populateReview();
+  });
+
+  btnBack.addEventListener('click', () => setStep(step-1));
+
+  // Save draft to localStorage
+  btnDraft.addEventListener('click', () => {
+    const draft = {
+      name: nameInput.value,
+      username: userInput.value,
+      school: schoolInput.value,
+      bio: bioInput.value
+    };
+    localStorage.setItem('muniverse_signup_draft', JSON.stringify(draft));
+    alert('Draft saved locally on this device.');
+  });
+
+  // Restore draft if present
+  (function restoreDraft(){
+    try{
+      const raw = localStorage.getItem('muniverse_signup_draft');
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.name) nameInput.value = d.name;
+      if (d.username) userInput.value = d.username;
+      if (d.school) schoolInput.value = d.school;
+      if (d.bio) bioInput.value = d.bio;
+    }catch(e){}
+  })();
+
+  // Photo preview
+  photoInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    photoPreview.src = url;
+    revPhoto.src = url;
+  });
+
+  function populateReview(){
+    revName.textContent = nameInput.value.trim() || '—';
+    revUser.textContent = userInput.value.trim() || '—';
+    revSchool.textContent = schoolInput.value.trim() || '—';
+    revBio.textContent = bioInput.value.trim() || '—';
+  }
+
+  // Final guard on submit
+  form.addEventListener('submit', function(e){
+    if (step !== total-1){
+      e.preventDefault();
+      if (validateStep(step)) setStep(step+1);
+      return;
+    }
+    const agree = document.getElementById('privacy-policy-agree');
+    if (!agree.checked){
+      e.preventDefault();
+      alert("Please agree to the Privacy Policy.");
+      return;
+    }
+    // allow normal submit
+  });
+
+  // Keyboard support: Enter => next (except in textarea); Shift+Enter => back
+  document.addEventListener('keydown', (e) => {
+    const isTextarea = document.activeElement && document.activeElement.tagName === 'TEXTAREA';
+    if (e.key === 'Enter' && !isTextarea && step < total-1){
+      e.preventDefault();
+      if (validateStep(step)) setStep(step+1);
+    }
+    if (e.key === 'Enter' && e.shiftKey){
+      e.preventDefault();
+      setStep(step-1);
+    }
+  });
+</script>
 </body>
 </html>
