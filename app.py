@@ -3,6 +3,7 @@ from flask import (
     url_for, abort, session, flash, jsonify
 )
 from werkzeug.utils import secure_filename
+    # pip install Werkzeug if missing
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 import json, os, functools, re, time
@@ -17,12 +18,12 @@ app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB uploads
 # -----------------------------------------------------------------------------
 # Data paths
 # -----------------------------------------------------------------------------
-DATA_DIR   = "data"
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-POSTS_FILE = os.path.join(DATA_DIR, "posts.json")
-CONF_FILE  = os.path.join(DATA_DIR, "conferences.json")
-FORUM_THREADS = os.path.join(DATA_DIR, "forum_threads.json")
-FORUM_REPLIES = os.path.join(DATA_DIR, "forum_replies.json")
+DATA_DIR        = "data"
+USERS_FILE      = os.path.join(DATA_DIR, "users.json")
+POSTS_FILE      = os.path.join(DATA_DIR, "posts.json")
+CONF_FILE       = os.path.join(DATA_DIR, "conferences.json")
+FORUM_THREADS   = os.path.join(DATA_DIR, "forum_threads.json")
+FORUM_REPLIES   = os.path.join(DATA_DIR, "forum_replies.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
@@ -140,98 +141,69 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+def admin_required(view):
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        me = get_current_user()
+        if not me or me.get("role") != "admin":
+            flash("Admin access required.", "error")
+            return redirect(url_for("feed"))
+        return view(*args, **kwargs)
+    return wrapped
+
 @app.context_processor
 def inject_user():
     return {"current_user": get_current_user()}
 
 # -----------------------------------------------------------------------------
+# Insights helper for Admin
+# -----------------------------------------------------------------------------
+def build_insights(users, posts, limit=10):
+    by_user = {u["username"]: {"likes": 0, "posts": 0,
+                               "profile_pic": u.get("profile_pic", "img/users/default.png"),
+                               "followers": u.get("followers", []),
+                               "following": u.get("following", [])}
+               for u in users}
+
+    total_likes = 0
+    total_comments = 0
+    for p in posts:
+        p = normalize_post(p)
+        likes = int(p.get("likes", 0))
+        total_likes += likes
+        total_comments += len(p.get("comments", []))
+        uname = p.get("username")
+        if uname in by_user:
+            by_user[uname]["likes"] += likes
+            by_user[uname]["posts"] += 1
+
+    top_users = []
+    for u in users:
+        stats = by_user.get(u["username"])
+        top_users.append({
+            "username": u["username"],
+            "profile_pic": stats["profile_pic"],
+            "likes": stats["likes"],
+            "posts": stats["posts"],
+            "followers": u.get("followers", []),
+            "following": u.get("following", [])
+        })
+    top_users.sort(key=lambda x: x["likes"], reverse=True)
+    top_users = top_users[:limit]
+
+    top_posts = sorted([normalize_post(p) for p in posts], key=lambda x: x.get("likes", 0), reverse=True)[:limit]
+
+    stats = {
+        "total_users": len(users),
+        "total_posts": len(posts),
+        "total_likes": total_likes,
+        "total_comments": total_comments,
+    }
+    return stats, {"top_users_by_likes": top_users, "top_posts": top_posts}
+
+# -----------------------------------------------------------------------------
 # Routes
 # -----------------------------------------------------------------------------
-@app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
-@login_required
-def post_edit(post_id):
-    posts = load_json(POSTS_FILE)
-    post = next((p for p in posts if p.get("id") == post_id), None)
-    if not post:
-        abort(404, "Post not found")
-
-    if post.get("username") != session["username"]:
-        abort(403)
-
-    if request.method == "POST":
-        post["caption"] = (request.form.get("caption") or "").strip()
-
-        file = request.files.get("image_file")
-        if file and file.filename:
-            if not allowed_file(file.filename):
-                flash("Invalid image type.", "error")
-                return redirect(url_for("post_edit", post_id=post_id))
-
-            old_image_path = post.get("image")
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(POST_UPLOAD_DIR, filename))
-            post["image"] = f"img/posts/{filename}"
-            delete_static_file(old_image_path)
-
-        save_json(POSTS_FILE, posts)
-        flash("Post updated.", "ok")
-        return redirect(url_for("profile", username=session["username"]))
-
-    return render_template("post_edit.html", post=post)
-
-@app.route("/post/<int:post_id>/delete", methods=["POST"])
-@login_required
-def post_delete(post_id):
-    posts = load_json(POSTS_FILE)
-    idx = next((i for i, p in enumerate(posts) if p.get("id") == post_id), None)
-    if idx is None:
-        abort(404, "Post not found")
-
-    post_to_delete = posts[idx]
-    if post_to_delete.get("username") != session["username"]:
-        abort(403)
-
-    delete_static_file(post_to_delete.get("image"))
-    posts.pop(idx)
-    save_json(POSTS_FILE, posts)
-    flash("Post deleted.", "ok")
-    return redirect(url_for("profile", username=session["username"]))
-
-@app.route("/settings/profile", methods=["GET", "POST"])
-@login_required
-def settings_profile():
-    users = load_json(USERS_FILE)
-    me = find_user(users, session["username"])
-    if not me:
-        session.clear()
-        abort(403)
-
-    if request.method == "POST":
-        me["name"] = (request.form.get("name") or "").strip()
-        me["school"] = (request.form.get("school") or "").strip()
-        me["bio"] = (request.form.get("bio") or "").strip()
-
-        file = request.files.get("profile_photo")
-        if file and file.filename:
-            if not allowed_file(file.filename):
-                flash("Invalid profile photo type.", "error")
-                return redirect(url_for("settings_profile"))
-
-            old_pic_path = me.get("profile_pic")
-            filename = secure_filename(file.filename)
-            ext = filename.rsplit(".", 1)[1].lower()
-            final_name = f"{me['username']}.{ext}"
-            save_path = os.path.join(USER_UPLOAD_DIR, final_name)
-            file.save(save_path)
-            me["profile_pic"] = f"img/users/{final_name}"
-            delete_static_file(old_pic_path)
-
-        save_user(users, me)
-        flash("Profile updated.", "ok")
-        return redirect(url_for("profile", username=me["username"]))
-
-    return render_template("settings_profile.html", user=me)
-
 @app.route("/")
 def onboarding():
     return render_template("onboarding.html")
@@ -308,7 +280,7 @@ def signup():
         return redirect(url_for("feed"))
     return render_template("signup.html")
 
-# -------------------- Password settings --------------------
+# -------------------- Settings: Password & Profile --------------------
 @app.route("/settings/password", methods=["GET", "POST"])
 @login_required
 def settings_password():
@@ -334,6 +306,41 @@ def settings_password():
         return redirect(url_for("profile", username=me["username"]))
     return render_template("settings_password.html", user=me)
 
+@app.route("/settings/profile", methods=["GET", "POST"])
+@login_required
+def settings_profile():
+    users = load_json(USERS_FILE)
+    me = find_user(users, session["username"])
+    if not me:
+        session.clear()
+        abort(403)
+
+    if request.method == "POST":
+        me["name"] = (request.form.get("name") or "").strip()
+        me["school"] = (request.form.get("school") or "").strip()
+        me["bio"] = (request.form.get("bio") or "").strip()
+
+        file = request.files.get("profile_photo")
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Invalid profile photo type.", "error")
+                return redirect(url_for("settings_profile"))
+
+            old_pic_path = me.get("profile_pic")
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit(".", 1)[1].lower()
+            final_name = f"{me['username']}.{ext}"
+            save_path = os.path.join(USER_UPLOAD_DIR, final_name)
+            file.save(save_path)
+            me["profile_pic"] = f"img/users/{final_name}"
+            delete_static_file(old_pic_path)
+
+        save_user(users, me)
+        flash("Profile updated.", "ok")
+        return redirect(url_for("profile", username=me["username"]))
+
+    return render_template("settings_profile.html", user=me)
+
 # -------------------- Explore / Feed / Post pages --------------------
 @app.route("/explore")
 def explore():
@@ -358,13 +365,63 @@ def feed():
 
 @app.route("/post/<int:post_id>")
 def post(post_id):
-    # Using get_post_by_id is slightly inefficient here as we don't need the whole list
     posts = load_json(POSTS_FILE)
     item = next((p for p in posts if p.get("id") == post_id), None)
     if not item:
         abort(404, "Post not found")
     normalize_post(item)
     return render_template("post.html", post=item)
+
+# Edit & Delete Post
+@app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
+@login_required
+def post_edit(post_id):
+    posts = load_json(POSTS_FILE)
+    post = next((p for p in posts if p.get("id") == post_id), None)
+    if not post:
+        abort(404, "Post not found")
+
+    if post.get("username") != session["username"]:
+        abort(403)
+
+    if request.method == "POST":
+        post["caption"] = (request.form.get("caption") or "").strip()
+
+        file = request.files.get("image_file")
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Invalid image type.", "error")
+                return redirect(url_for("post_edit", post_id=post_id))
+
+            old_image_path = post.get("image")
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(POST_UPLOAD_DIR, filename))
+            post["image"] = f"img/posts/{filename}"
+            delete_static_file(old_image_path)
+
+        save_json(POSTS_FILE, posts)
+        flash("Post updated.", "ok")
+        return redirect(url_for("profile", username=session["username"]))
+
+    return render_template("post_edit.html", post=post)
+
+@app.route("/post/<int:post_id>/delete", methods=["POST"])
+@login_required
+def post_delete(post_id):
+    posts = load_json(POSTS_FILE)
+    idx = next((i for i, p in enumerate(posts) if p.get("id") == post_id), None)
+    if idx is None:
+        abort(404, "Post not found")
+
+    post_to_delete = posts[idx]
+    if post_to_delete.get("username") != session["username"]:
+        abort(403)
+
+    delete_static_file(post_to_delete.get("image"))
+    posts.pop(idx)
+    save_json(POSTS_FILE, posts)
+    flash("Post deleted.", "ok")
+    return redirect(url_for("profile", username=session["username"]))
 
 # -------------------- Add Post --------------------
 @app.route("/addpost", methods=["GET", "POST"])
@@ -658,7 +715,6 @@ def forum_thread(slug):
     thread_replies.sort(key=lambda r: r.get("created_ts", 0))
     return render_template("forum_thread.html", thread=thread, replies=thread_replies)
 
-
 # -------------------- Static Pages --------------------
 @app.route("/about")
 def about():
@@ -668,6 +724,119 @@ def about():
 def privacypolicy():
     return render_template("privacypolicy.html")
 
+# -------------------- Admin Portal --------------------
+@app.route("/admin")
+@admin_required
+def admin_portal():
+    uq = (request.args.get("uq") or "").strip().lower()
+
+    users = load_json(USERS_FILE)
+    posts = load_json(POSTS_FILE)
+    for p in posts:
+        normalize_post(p)
+
+    stats, insights = build_insights(users, posts, limit=10)
+
+    # attach simple stats to users for table
+    by_user = {u["username"]: {"likes": 0, "posts": 0} for u in users}
+    for p in posts:
+        uname = p.get("username")
+        if uname in by_user:
+            by_user[uname]["likes"] += int(p.get("likes", 0))
+            by_user[uname]["posts"] += 1
+    for u in users:
+        u["_stats"] = by_user.get(u["username"], {"likes": 0, "posts": 0})
+
+    # filter users if query
+    if uq:
+        def hit(u):
+            src = f"{u.get('username','').lower()} {u.get('name','').lower()}"
+            return uq in src
+        users = [u for u in users if hit(u)]
+
+    posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
+
+    return render_template("adminportal.html",
+                           users=users, posts=posts,
+                           stats=stats, insights=insights, uq=uq)
+
+@app.route("/admin/delete_post", methods=["POST"])
+@admin_required
+def admin_delete_post():
+    try:
+        pid = int(request.form.get("post_id"))
+    except Exception:
+        flash("Invalid post id.", "error")
+        return redirect(url_for("admin_portal"))
+
+    posts = load_json(POSTS_FILE)
+    target = next((p for p in posts if p.get("id") == pid), None)
+    if not target:
+        flash(f"Post #{pid} not found.", "warn")
+        return redirect(url_for("admin_portal"))
+
+    delete_static_file(target.get("image"))
+    posts = [p for p in posts if p.get("id") != pid]
+    save_json(POSTS_FILE, posts)
+    flash(f"Deleted post #{pid}.", "ok")
+    return redirect(url_for("admin_portal"))
+
+@app.route("/admin/delete_user", methods=["POST"])
+@admin_required
+def admin_delete_user():
+    uname = (request.form.get("username") or "").strip()
+    if not uname:
+        flash("Missing username.", "error")
+        return redirect(url_for("admin_portal"))
+
+    users = load_json(USERS_FILE)
+    posts = load_json(POSTS_FILE)
+
+    user = find_user(users, uname)
+    if not user:
+        flash(f"User @{uname} not found.", "warn")
+        return redirect(url_for("admin_portal"))
+
+    # Remove user's uploaded avatar (if not default)
+    delete_static_file(user.get("profile_pic"))
+
+    # Remove user's posts & images
+    deleted = 0
+    for p in list(posts):
+        if p.get("username") == uname:
+            delete_static_file(p.get("image"))
+            posts.remove(p)
+            deleted += 1
+    save_json(POSTS_FILE, posts)
+
+    # Remove user & cleanup follow relationships
+    users = [u for u in users if u.get("username") != uname]
+    for u in users:
+        u["followers"] = [x for x in u.get("followers", []) if x != uname]
+        u["following"] = [x for x in u.get("following", []) if x != uname]
+    save_json(USERS_FILE, users)
+
+    flash(f"Deleted user @{uname} and {deleted} posts.", "ok")
+    return redirect(url_for("admin_portal"))
+
+@app.route("/admin/toggle_admin", methods=["POST"])
+@admin_required
+def admin_toggle_admin():
+    uname = (request.form.get("username") or "").strip()
+    if not uname:
+        flash("Missing username.", "error")
+        return redirect(url_for("admin_portal"))
+
+    users = load_json(USERS_FILE)
+    user = find_user(users, uname)
+    if not user:
+        flash("User not found.", "warn")
+        return redirect(url_for("admin_portal"))
+
+    user["role"] = "admin" if user.get("role") != "admin" else "user"
+    save_user(users, user)
+    flash(f"@{uname} role is now: {user['role']}.", "ok")
+    return redirect(url_for("admin_portal"))
 
 # -------------------- Debug uploads --------------------
 @app.route("/_uploads")

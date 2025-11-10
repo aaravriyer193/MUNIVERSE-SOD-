@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Portal — Muniverse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}" type="image/png">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  <style>
+    .admin-grid { display:grid; gap:16px; }
+    .cards { display:grid; grid-template-columns: repeat(4,1fr); gap:12px; }
+    @media (max-width:960px){ .cards{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:560px){ .cards{grid-template-columns:1fr;} }
+    .stat { padding:16px; border-radius:14px; border:1px solid #2b2b2b; background:linear-gradient(180deg,#161616,#101010); }
+    .stat .k { font-size:28px; font-weight:800; }
+    .stat .l { color:var(--muted); }
+
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px 12px; border-bottom:1px solid #272727; text-align:left; }
+    th { color:#dedede; font-weight:700; }
+    tr:hover { background:#121212; }
+    .tbl-wrap { overflow:auto; }
+
+    .tools { display:flex; gap:8px; flex-wrap:wrap; }
+    .danger { background:#3a1b1b; border:1px solid #6a3434; color:#ffdede; }
+    .danger:hover { filter:brightness(1.05); }
+    .ok { background:#1b3a28; border:1px solid #366a4a; color:#dcffea; }
+    .btn-sm { padding:8px 12px; border-radius:10px; font-weight:700; border:1px solid #2a2a2a; background:#161616; }
+    .searchbar { display:flex; gap:8px; }
+    .pill-muted { padding:4px 8px; border:1px solid #2a2a2a; border-radius:999px; color:#bbb; font-size:12px; }
+    .avatar-16 { width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,.15); vertical-align:middle; margin-right:6px; }
+    .nowrap { white-space:nowrap; }
+    .w-120 { width:120px; }
+    .w-80 { width:80px; }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="{{ url_for('feed') }}">
+    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+    <span>Muniverse</span>
+  </a>
+  <nav class="nav">
+    <a href="{{ url_for('feed') }}">Home</a>
+    <a href="{{ url_for('explore') }}">Explore</a>
+    <a href="{{ url_for('forums') }}">Forums</a>
+    <a href="{{ url_for('conferences') }}">Conferences</a>
+    <a class="active" href="{{ url_for('admin_portal') }}">Admin</a>
+    {% if current_user %}
+      <span class="pill-muted">Signed in as @{{ current_user.username }}</span>
+      <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+    {% endif %}
+  </nav>
+</header>
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes" style="margin-bottom:12px;">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <h2 class="section-title">Admin Dashboard</h2>
+
+  <section class="cards">
+    <div class="stat">
+      <div class="k">{{ stats.total_users }}</div>
+      <div class="l">Total Users</div>
+    </div>
+    <div class="stat">
+      <div class="k">{{ stats.total_posts }}</div>
+      <div class="l">Total Posts</div>
+    </div>
+    <div class="stat">
+      <div class="k">{{ stats.total_likes }}</div>
+      <div class="l">Total Likes</div>
+    </div>
+    <div class="stat">
+      <div class="k">{{ stats.total_comments }}</div>
+      <div class="l">Total Comments</div>
+    </div>
+  </section>
+
+  <section class="admin-grid">
+    <div class="card pad">
+      <h3 class="section-title">Top Users by Likes Received</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>User</th><th>Total Likes on Posts</th><th>Posts</th><th>Followers</th><th>Following</th>
+          </tr></thead>
+          <tbody>
+          {% for u in insights.top_users_by_likes %}
+            <tr>
+              <td>
+                <img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
+                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a>
+              </td>
+              <td class="nowrap">{{ u.likes }}</td>
+              <td class="nowrap">{{ u.posts }}</td>
+              <td class="nowrap">{{ (u.followers|length) if u.followers else 0 }}</td>
+              <td class="nowrap">{{ (u.following|length) if u.following else 0 }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5">No data.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card pad">
+      <h3 class="section-title">Top Posts (Most Liked)</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Author</th><th>Caption</th><th class="w-80">Likes</th><th class="w-80">Comments</th><th class="w-120">Tools</th>
+          </tr></thead>
+          <tbody>
+          {% for p in insights.top_posts %}
+            <tr>
+              <td>#{{ p.id }}</td>
+              <td><a href="{{ url_for('profile', username=p.username) }}">@{{ p.username }}</a></td>
+              <td>{{ p.caption }}</td>
+              <td>{{ p.likes }}</td>
+              <td>{{ p.comments|length }}</td>
+              <td>
+                <div class="tools">
+                  <form method="post" action="{{ url_for('admin_delete_post') }}" onsubmit="return confirm('Delete post #{{ p.id }} permanently?')">
+                    <input type="hidden" name="post_id" value="{{ p.id }}">
+                    <button class="btn-sm danger" type="submit">Delete</button>
+                  </form>
+                  <a class="btn-sm" href="{{ url_for('post', post_id=p.id) }}">View</a>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6">No posts.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card pad">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h3 class="section-title" style="margin:0;">All Users</h3>
+        <form method="get" class="searchbar" action="{{ url_for('admin_portal') }}">
+          <input name="uq" placeholder="Filter @username or name…" value="{{ uq|default('') }}">
+          <button class="btn-sm" type="submit">Search</button>
+          {% if uq %}
+            <a class="btn-sm" href="{{ url_for('admin_portal') }}">Clear</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>User</th><th>Name</th><th>School</th><th>Posts</th><th>Likes</th><th>Role</th><th class="w-120">Tools</th>
+          </tr></thead>
+          <tbody>
+          {% for u in users %}
+            <tr>
+              <td>
+                <img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
+                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a>
+              </td>
+              <td>{{ u.name }}</td>
+              <td>{{ u.school }}</td>
+              <td>{{ u._stats.posts }}</td>
+              <td>{{ u._stats.likes }}</td>
+              <td>{{ u.role|default('user') }}</td>
+              <td>
+                <div class="tools">
+                  <form method="post" action="{{ url_for('admin_delete_user') }}"
+                        onsubmit="return confirm('Delete @{{ u.username }} and ALL their posts & relationships? This cannot be undone.');">
+                    <input type="hidden" name="username" value="{{ u.username }}">
+                    <button class="btn-sm danger" type="submit">Delete</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin_toggle_admin') }}"
+                        onsubmit="return confirm('Toggle admin for @{{ u.username }}?');" style="display:inline;">
+                    <input type="hidden" name="username" value="{{ u.username }}">
+                    <button class="btn-sm ok" type="submit">
+                      {% if u.role == 'admin' %}Revoke Admin{% else %}Make Admin{% endif %}
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7">No users.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card pad">
+      <h3 class="section-title">All Posts</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>User</th><th>Caption</th><th class="w-80">Likes</th><th class="w-80">Comments</th><th class="w-120">Tools</th>
+          </tr></thead>
+          <tbody>
+          {% for p in posts %}
+            <tr>
+              <td>#{{ p.id }}</td>
+              <td><a href="{{ url_for('profile', username=p.username) }}">@{{ p.username }}</a></td>
+              <td>{{ p.caption }}</td>
+              <td>{{ p.likes }}</td>
+              <td>{{ p.comments|length }}</td>
+              <td>
+                <div class="tools">
+                  <form method="post" action="{{ url_for('admin_delete_post') }}"
+                        onsubmit="return confirm('Delete post #{{ p.id }} permanently?');">
+                    <input type="hidden" name="post_id" value="{{ p.id }}">
+                    <button class="btn-sm danger" type="submit">Delete</button>
+                  </form>
+                  <a class="btn-sm" href="{{ url_for('post', post_id=p.id) }}">View</a>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6">No posts.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>
