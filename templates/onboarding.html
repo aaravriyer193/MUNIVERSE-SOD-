@@ -6,9 +6,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="icon" href="/static/img/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;800;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
+/* ============================================
+=== YOUR LATEST HERO CSS (CLEANED) ===
+============================================
+*/
 :root {
   --bg:#0b0b0d;
   --accent:#ff6a00;
@@ -20,15 +24,17 @@
 
 /* Basic resets */
 *{ box-sizing:border-box; margin:0; padding:0; }
+html{ scroll-behavior: smooth; }
 body{ font-family:Inter, sans-serif; color:var(--text); background:var(--bg); overflow-x:hidden; }
 
 /* Hero styling */
-.hero{ position:relative; display:grid; place-items:center; padding:80px 16px 60px; text-align:center; overflow:hidden; min-height:100vh; }
+.hero{ position:relative; display:grid; place-items:center; padding:160px 16px 60px; text-align:center; overflow:hidden; min-height:100vh; } 
 .hero-logo{ width:120px; height:120px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; margin-bottom:20px; box-shadow:0 0 40px rgba(255,106,0,.25); animation:pulse 4s ease-in-out infinite; }
 .hero-logo img{ width:80px; height:80px; object-fit:contain; filter:drop-shadow(0 0 15px rgba(255,140,0,.5)); }
 @keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(255,106,0,.25);}50%{box-shadow:0 0 80px rgba(255,140,0,.6);}}
 
 .headline{ font-family:Kanit,Inter; font-weight:800; font-size:clamp(42px,5vw,80px); line-height:1.05; margin-bottom:12px; background:linear-gradient(90deg,var(--accent),#ffb86b); -webkit-background-clip:text; color:transparent; text-shadow:0 0 30px rgba(255,106,0,.4); animation:shine 8s linear infinite; background-size:200% auto; }
+.headline2{ font-family:Kanit,Inter; font-weight:900; font-size:clamp(50px,7vw,100px); line-height:1.05; margin-bottom:12px; background:linear-gradient(90deg,var(--text),#ffffff); -webkit-background-clip:text; color:transparent; text-shadow:0 0 30px rgba(255, 255, 255, 0.4); background-size:200% auto; }
 @keyframes shine{0%{background-position:0% center;}100%{background-position:200% center;}}
 .sub{ color:var(--muted); font-size:clamp(15px,1.8vw,18px); max-width:780px; margin:0 auto 30px; }
 
@@ -79,36 +85,397 @@ body{ font-family:Inter, sans-serif; color:var(--text); background:var(--bg); ov
   50%{ opacity:0.8; }
   100%{ transform:translate(50vw,-120vh) rotate(45deg) scaleY(0.3); opacity:0; }
 }
+
+
+/* ============================================
+=== NEW CSS FOR NEW SECTIONS (CLEANED) ===
+============================================
+*/
+
+/* --- Utilities --- */
+.container{
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.section{
+  padding: 100px 0;
+  position: relative;
+}
+.section-title {
+  font-family: 'Kanit', sans-serif;
+  font-size: clamp(36px, 4vw, 50px);
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg, var(--text), var(--muted));
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.section-subtitle {
+  font-size: 18px;
+  color: var(--muted);
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 50px auto;
+}
+
+/* --- 1. Navigation --- */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 0;
+  z-index: 100;
+  background: rgba(11, 11, 13, 0.8); /* 80% transparent --bg */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--edge);
+}
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-family: 'Kanit', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+}
+.nav-logo img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.nav-links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+  transition: color 0.2s ease;
+}
+.nav-links a:hover {
+  color: var(--accent);
+}
+.nav-actions {
+  display: flex;
+  gap: 12px;
+}
+.nav-actions .btn {
+  padding: 8px 16px; /* Smaller buttons for nav */
+}
+/* Mobile nav (simple hide) */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+}
+
+
+/* --- 2. Features Section --- */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.feature-card {
+  background: var(--edge);
+  padding: 28px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 106, 0, 0.1); /* Faint accent border */
+  transition: all 0.3s ease;
+}
+.feature-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 10px 30px rgba(255, 106, 0, 0.15);
+}
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, var(--accent), var(--accent-2));
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.feature-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+}
+.feature-card h3 {
+  font-family: 'Kanit', sans-serif;
+  font-size: 22px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.feature-card p {
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+/* --- 3. How It Works Section --- */
+.how-it-works {
+  background: var(--edge);
+}
+.steps-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+.step-card {
+  flex: 1;
+  min-width: 260px;
+  text-align: center;
+  padding: 20px;
+  position: relative;
+}
+.step-number {
+  font-family: 'Kanit', sans-serif;
+  font-weight: 800;
+  font-size: 80px;
+  line-height: 1;
+  color: rgba(255, 106, 0, 0.15); /* Transparent accent */
+  margin-bottom: -10px;
+}
+.step-card h3 {
+  font-family: 'Kanit', sans-serif;
+  font-size: 24px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.step-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+/* Arrow connectors (pseudo-elements) */
+@media (min-width: 769px) {
+  .step-card:not(:last-child)::after {
+    content: '→';
+    position: absolute;
+    right: -30px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 40px;
+    color: var(--accent);
+    font-weight: 200;
+  }
+}
+
+
+/* --- 4. Testimonials Section --- */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+.testimonial-card {
+  background: var(--edge);
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+.testimonial-card::before {
+  content: '“';
+  font-family: 'Kanit', sans-serif;
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  font-size: 100px;
+  color: rgba(255, 106, 0, 0.15);
+  line-height: 1;
+  z-index: 0;
+}
+.testimonial-card p {
+  font-size: 16px;
+  color: var(--text);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+  font-style: italic;
+}
+.testimonial-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+/* Using simple initials for avatars */
+.author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-family: 'Kanit', sans-serif;
+}
+.author-info h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+.author-info span {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+
+/* --- 5. Final CTA Section --- */
+.cta-section {
+  background: var(--edge);
+  border-radius: 20px;
+  padding: 60px 40px;
+  text-align: center;
+  border: 1px solid rgba(255, 106, 0, 0.2);
+  box-shadow: 0 0 50px rgba(255, 106, 0, 0.1);
+}
+.cta-section .headline {
+  font-size: clamp(32px, 4vw, 44px); /* Slightly smaller headline */
+  margin-bottom: 16px;
+}
+.cta-section .sub {
+  max-width: 600px;
+  margin-bottom: 30px;
+}
+.cta-section .btn-primary {
+  transform: scale(1.1); /* Make the button bigger */
+}
+
+
+/* --- 6. Footer --- */
+.footer {
+  border-top: 1px solid var(--edge);
+  padding: 50px 0;
+  margin-top: 100px; /* Space it from the CTA */
+}
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-bottom: 40px; /* Space before bottom text */
+}
+.footer-logo {
+  font-family: 'Kanit', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+.footer-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.footer-links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 500;
+}
+.footer-links a:hover {
+  color: var(--accent);
+}
+.social-icons {
+  display: flex;
+  gap: 16px;
+}
+.social-icons a {
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.social-icons a:hover {
+  color: var(--accent);
+}
+.social-icons svg {
+  width: 24px;
+  height: 24px;
+}
+.footer-bottom {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  border-top: 1px solid var(--edge);
+  padding-top: 40px;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+}
 </style>
 </head>
 <body>
+
+<header class="header">
+  <div class="container nav">
+    <a href="#" class="nav-logo">
+      <img src="/static/img/favicon.png" alt="Muniverse Logo">
+      <span>Muniverse</span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it Works</a>
+      <a href="#testimonials">Testimonials</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-ghost" href="/login">Login</a>
+      <a class="btn btn-primary" href="/signup">Get Started</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
 <section class="hero">
-  <!-- Particle container -->
   <div id="particles"></div>
 
-  <!-- Logo -->
   <div class="hero-logo"><img src="/static/img/favicon.png" alt="Muniverse Logo"></div>
+  <h1 class="headline2">MUNiverse</h1>
   <h1 class="headline">Where delegates connect beyond debate.</h1>
   <p class="sub">Build your profile. Share committee moments. Discover conferences.<br>Muniverse is your hub for everything MUN — fast, social, and easy to share.</p>
 
   <div class="actions">
-    <a class="btn btn-ghost" href="{{ url_for('login') }}">Login</a>
-    <a class="btn btn-primary" href="{{ url_for('signup') }}">Create Profile</a>
-<a class="btn btn-ghost" href="https://github.com/aaravriyer193/muniverse-sod-" target="_blank" rel="noopener noreferrer">
-  See github
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 496 512" 
-    aria-hidden="true"
-    width="1em" 
-    height="1em" 
-    fill="currentColor" 
-    style="vertical-align: -0.125em;"
-  >
-    <path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/>
-  </svg>
-</a>  
-</div>
+    <a class="btn btn-ghost" href="/login">Login</a>
+    <a class="btn btn-primary" href="/signup">Get Started</a>
+    <a class="btn btn-ghost" href="https://github.com/aaravriyer193/muniverse-sod-" target="_blank" rel="noopener noreferrer">
+      See github
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 496 512" 
+        aria-hidden="true"
+        width="1em" 
+        height="1em" 
+        fill="currentColor" 
+        style="vertical-align: -0.125em;"
+      >
+        <path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/>
+      </svg>
+    </a>   
+  </div>
 
   <div class="stats">
     <div class="stat"><b>Nonsense-Free</b><span>No ads or subscription fees</span></div>
@@ -116,6 +483,139 @@ body{ font-family:Inter, sans-serif; color:var(--text); background:var(--bg); ov
     <div class="stat"><b>Quick</b><span>MUNers now only need one platform</span></div>
   </div>
 </section>
+
+<section id="features" class="section">
+  <div class="container">
+    <h2 class="section-title">One Platform, Every Tool</h2>
+    <p class="section-subtitle">Muniverse replaces scattered spreadsheets, lost contacts, and messy group chats with one integrated social network for delegates.</p>
+    
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </div>
+        <h3>Build Your Delegate Profile</h3>
+        <p>Create a profile that showcases your MUN career. List your awards, past conferences, and committees. Connect with delegates you've met.</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+        </div>
+        <h3>Discover Conferences</h3>
+        <p>Browse a global registry of upcoming conferences. Filter by region, topic, or date. No more scrolling endless Instagram pages.</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.354-5.646l-2.536-2.536A6.75 6.75 0 0112 15a6.75 6.75 0 01-3.818-1.182l-2.536 2.536A9.004 9.004 0 0012 21zM2.25 9.75A9 9 0 0112 3v2.25m0 0a6.75 6.75 0 00-3.818 1.182l-2.536-2.536A9 9 0 012.25 9.75zM12 15a6.75 6.75 0 01-3.818-1.182l-2.536 2.536A9 9 0 0012 21.75m0 0a9 9 0 008.354-5.646l-2.536-2.536A6.75 6.75 0 0112 15z" /></svg>
+        </div>
+        <h3>Share Committee Moments</h3>
+        <p>Post updates, photos, and inside jokes from your committees. Create forums for your delegation and stay in touch after the gavel drops.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how-it-works" class="section how-it-works">
+  <div class="container">
+    <h2 class="section-title">Get Started in Seconds</h2>
+    <p class="section-subtitle">Join the network and start connecting.</p>
+    <div class="steps-container">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <h3>Create Your Account</h3>
+        <p>Sign up for free. No ads, no hidden fees, ever. We're built by MUNers, for MUNers.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <h3>Build Your Profile</h3>
+        <p>Add your past experiences, awards, and the conferences you're attending next.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <h3>Connect & Discover</h3>
+        <p>Find delegates you've met, discover new conferences, and join interest-based forums.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="testimonials" class="section">
+  <div class="container">
+    <h2 class="section-title">By MUNers, For MUNers</h2>
+    <p class="section-subtitle">See what the community is saying about Muniverse.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p>"Muniverse is what I've wanted for years. I finally have one place to see my friend's conference photos AND find my next MUN. It's essential."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">JS</div>
+          <div class="author-info">
+            <h4>Jane Smith</h4>
+            <span>Delegate, SOCHUM</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="testimonial-card">
+        <p>"As a conference organizer, Muniverse has simplified our outreach. We can post our conference and reach thousands of active delegates instantly."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">RK</div>
+          <div class="author-info">
+            <h4>Raj K.</h4>
+            <span>Secretary-General, (Sample)MUN</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="testimonial-card">
+        <p>"I've reconnected with delegates from three different conferences. The 'Committee Forums' feature is perfect for staying in touch post-conference."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">AD</div>
+          <div class="author-info">
+            <h4>Alex Delgado</h4>
+            <span>Chair, UNSC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    ‎ 
+  </div>
+  <div class="container">
+    <div class="cta-section">
+      <h2 class="headline">Join the new home for MUN.</h2>
+      <p class="sub">Sign up today. Start connecting with delegates from around the world in seconds. It’s 100% free.</p>
+      <a class="btn btn-primary" href="/signup">Get Started Now</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <a href="#" class="footer-logo">Muniverse</a>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="{{ url_for('about') }}">About</a>
+        <a href="">Contact</a>
+        <a href="{{ url_for('privacypolicy') }}">Privacy Policy</a>
+      </div>
+      <div class="social-icons">
+        <a href="https://github.com/aaravriyer193/muniverse-sod-" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      Made By Aarav Iyer. 2025 Muniverse.
+    </div>
+  </div>
+</footer>
+
 
 <script>
 // Generate lots of particles dynamically
@@ -145,7 +645,4 @@ for(let i=0;i<numComets;i++){
 }
 </script>
 </body>
-<footer>
-  <p class="sub">Made By Aarav Iyer</p>
-</footer>
 </html>
