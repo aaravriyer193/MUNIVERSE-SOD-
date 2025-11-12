@@ -3,10 +3,10 @@ from flask import (
     url_for, abort, session, flash, jsonify
 )
 from werkzeug.utils import secure_filename
-    # pip install Werkzeug if missing
+# pip install Werkzeug if missing
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
-import json, os, functools, re, time
+import json, os, functools, re, time, shutil
 
 # -----------------------------------------------------------------------------
 # Flask setup
@@ -14,6 +14,9 @@ import json, os, functools, re, time
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("MUNIVERSE_SECRET", "dev-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB uploads
+
+# Admin portal password (set in env for production)
+ADMIN_PORTAL_PASSWORD = os.environ.get("MUNIVERSE_ADMIN_PASSWORD", "kwQUkoOb45A2O6qAWXqmzjP8Tn7FrkrH")
 
 # -----------------------------------------------------------------------------
 # Data paths
@@ -24,6 +27,11 @@ POSTS_FILE      = os.path.join(DATA_DIR, "posts.json")
 CONF_FILE       = os.path.join(DATA_DIR, "conferences.json")
 FORUM_THREADS   = os.path.join(DATA_DIR, "forum_threads.json")
 FORUM_REPLIES   = os.path.join(DATA_DIR, "forum_replies.json")
+
+# New: pending conferences + admin notifications
+CONF_PENDING_FILE = os.path.join(DATA_DIR, "pending_conferences.json")
+NOTIFS_FILE       = os.path.join(DATA_DIR, "admin_notifications.json")
+
 os.makedirs(DATA_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
@@ -32,7 +40,10 @@ os.makedirs(DATA_DIR, exist_ok=True)
 POST_UPLOAD_DIR = os.path.join(app.static_folder, "img", "posts")
 USER_UPLOAD_DIR = os.path.join(app.static_folder, "img", "users")
 CONF_UPLOAD_DIR = os.path.join(app.static_folder, "img", "conferences")
-for d in (POST_UPLOAD_DIR, USER_UPLOAD_DIR, CONF_UPLOAD_DIR):
+# New: where pending conference banners are staged before approval
+PENDING_UPLOAD_DIR = os.path.join(CONF_UPLOAD_DIR, "pending")
+
+for d in (POST_UPLOAD_DIR, USER_UPLOAD_DIR, CONF_UPLOAD_DIR, PENDING_UPLOAD_DIR):
     os.makedirs(d, exist_ok=True)
 
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -59,6 +70,12 @@ def slugify(s: str) -> str:
     s = re.sub(r"\s+", "-", s)
     s = re.sub(r"-{2,}", "-", s)
     return s[:80] or "topic"
+
+def add_notification(kind: str, payload: dict):
+    notifs = load_json(NOTIFS_FILE)
+    nid = (max([n.get("id", 0) for n in notifs], default=0) + 1) if notifs else 1
+    notifs.append({"id": nid, "kind": kind, "payload": payload, "ts": int(time.time())})
+    save_json(NOTIFS_FILE, notifs)
 
 # -----------------------------------------------------------------------------
 # JSON helpers
@@ -151,6 +168,10 @@ def admin_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+def is_admin_verified() -> bool:
+    u = get_current_user()
+    return bool(u and u.get("role") == "admin" and session.get("admin_verified") is True)
+
 @app.context_processor
 def inject_user():
     return {"current_user": get_current_user()}
@@ -220,6 +241,8 @@ def login():
             flash("Invalid username or password.", "error")
             return redirect(url_for("login"))
         session["username"] = username
+        # Reset admin verification on login (safer)
+        session["admin_verified"] = False
         nxt = request.args.get("next") or url_for("feed")
         return redirect(nxt)
     return render_template("login.html")
@@ -277,6 +300,7 @@ def signup():
         save_json(USERS_FILE, users)
 
         session["username"] = username
+        session["admin_verified"] = False
         return redirect(url_for("feed"))
     return render_template("signup.html")
 
@@ -520,6 +544,7 @@ def conference(conf_id):
         abort(404, "Conference not found")
     return render_template("conference.html", conference=conf)
 
+# Submit-for-approval flow (stores to pending list + pending banner folder)
 @app.route("/addconference", methods=["GET", "POST"])
 @login_required
 def addconference():
@@ -527,9 +552,12 @@ def addconference():
         name = (request.form.get("name") or "").strip()
         date = (request.form.get("date") or "").strip()
         location = (request.form.get("location") or "").strip()
+        slug_id = (request.form.get("id") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        tags_raw = (request.form.get("tags") or "").strip()
 
-        if not all([name, date, location]):
-            flash("Name, date, and location are required.", "error")
+        if not all([slug_id, name, date, location, description]):
+            flash("Please fill all required fields (ID, name, date, location, description).", "error")
             return redirect(url_for("addconference"))
 
         file = request.files.get("banner_file")
@@ -541,22 +569,35 @@ def addconference():
             return redirect(url_for("addconference"))
 
         filename = secure_filename(file.filename)
-        file.save(os.path.join(CONF_UPLOAD_DIR, filename))
-        banner_path = f"img/conferences/{filename}"
+        filename = f"{int(time.time())}_{filename}"
+        file.save(os.path.join(PENDING_UPLOAD_DIR, filename))
+        pending_banner_path = f"img/conferences/pending/{filename}"
 
-        confs = load_json(CONF_FILE)
-        tags_raw = request.form.get("tags", "")
-        new_conf = {
-            "id":   next_id(confs),
+        pendings = load_json(CONF_PENDING_FILE)
+        pending_item = {
+            "id": next_id(pendings),
+            "slug": slug_id,
             "name": name,
             "date": date,
             "location": location,
-            "description": (request.form.get("description") or "").strip(),
-            "banner": banner_path,
-            "tags": [t.strip() for t in tags_raw.split(",") if t.strip()]
+            "description": description,
+            "banner": pending_banner_path,
+            "tags": [t.strip() for t in tags_raw.split(",") if t.strip()],
+            "submitted_by": session.get("username"),
+            "submitted_ts": int(time.time()),
+            "status": "pending"
         }
-        confs.append(new_conf)
-        save_json(CONF_FILE, confs)
+        pendings.append(pending_item)
+        save_json(CONF_PENDING_FILE, pendings)
+
+        add_notification("conference_submission", {
+            "pending_id": pending_item["id"],
+            "slug": slug_id,
+            "name": name,
+            "submitted_by": pending_item["submitted_by"]
+        })
+
+        flash("Conference submitted for admin approval. It will appear after approval.", "ok")
         return redirect(url_for("conferences"))
 
     return render_template("addconference.html")
@@ -724,16 +765,29 @@ def about():
 def privacypolicy():
     return render_template("privacypolicy.html")
 
-# -------------------- Admin Portal --------------------
+# -------------------- Admin Gate + Portal + Actions --------------------
+@app.route("/admin/verify", methods=["POST"])
+@login_required
+@admin_required
+def admin_verify():
+    pw = (request.form.get("admin_password") or "").strip()
+    if pw and pw == ADMIN_PORTAL_PASSWORD:
+        session["admin_verified"] = True
+        flash("Admin mode enabled.", "ok")
+    else:
+        session["admin_verified"] = False
+        flash("Invalid admin password.", "error")
+    return redirect(url_for("admin_portal"))
+
 @app.route("/admin")
+@login_required
 @admin_required
 def admin_portal():
-    uq = (request.args.get("uq") or "").strip().lower()
+    verified = is_admin_verified()
 
+    uq = (request.args.get("uq") or "").strip().lower()
     users = load_json(USERS_FILE)
-    posts = load_json(POSTS_FILE)
-    for p in posts:
-        normalize_post(p)
+    posts = [normalize_post(p) for p in load_json(POSTS_FILE)]
 
     stats, insights = build_insights(users, posts, limit=10)
 
@@ -745,7 +799,7 @@ def admin_portal():
             by_user[uname]["likes"] += int(p.get("likes", 0))
             by_user[uname]["posts"] += 1
     for u in users:
-        u["_stats"] = by_user.get(u["username"], {"likes": 0, "posts": 0})
+        u["stats"] = by_user.get(u["username"], {"likes": 0, "posts": 0})
 
     # filter users if query
     if uq:
@@ -756,13 +810,24 @@ def admin_portal():
 
     posts = sorted(posts, key=lambda x: x.get("id", 0), reverse=True)
 
-    return render_template("adminportal.html",
-                           users=users, posts=posts,
-                           stats=stats, insights=insights, uq=uq)
+    pendings = []
+    if verified:
+        pendings = sorted(load_json(CONF_PENDING_FILE), key=lambda x: x.get("submitted_ts", 0), reverse=True)
+
+    return render_template(
+        "adminportal.html",
+        verified=verified,
+        users=users, posts=posts,
+        stats=stats, insights=insights, uq=uq,
+        pendings=pendings
+    )
 
 @app.route("/admin/delete_post", methods=["POST"])
+@login_required
 @admin_required
 def admin_delete_post():
+    if not is_admin_verified():
+        abort(403)
     try:
         pid = int(request.form.get("post_id"))
     except Exception:
@@ -782,8 +847,11 @@ def admin_delete_post():
     return redirect(url_for("admin_portal"))
 
 @app.route("/admin/delete_user", methods=["POST"])
+@login_required
 @admin_required
 def admin_delete_user():
+    if not is_admin_verified():
+        abort(403)
     uname = (request.form.get("username") or "").strip()
     if not uname:
         flash("Missing username.", "error")
@@ -820,8 +888,11 @@ def admin_delete_user():
     return redirect(url_for("admin_portal"))
 
 @app.route("/admin/toggle_admin", methods=["POST"])
+@login_required
 @admin_required
 def admin_toggle_admin():
+    if not is_admin_verified():
+        abort(403)
     uname = (request.form.get("username") or "").strip()
     if not uname:
         flash("Missing username.", "error")
@@ -836,6 +907,72 @@ def admin_toggle_admin():
     user["role"] = "admin" if user.get("role") != "admin" else "user"
     save_user(users, user)
     flash(f"@{uname} role is now: {user['role']}.", "ok")
+    return redirect(url_for("admin_portal"))
+
+# ---- Approve / Reject conference submissions (admin verified only) ----
+@app.route("/admin/conf/approve", methods=["POST"])
+@login_required
+@admin_required
+def admin_conf_approve():
+    if not is_admin_verified():
+        abort(403)
+    pid = int(request.form.get("pending_id", 0))
+    pendings = load_json(CONF_PENDING_FILE)
+    idx = next((i for i,p in enumerate(pendings) if int(p.get("id",0)) == pid), None)
+    if idx is None:
+        flash("Pending item not found.", "error")
+        return redirect(url_for("admin_portal"))
+
+    item = pendings[idx]
+    # move banner from pending to live folder
+    src_rel = item["banner"]  # "img/conferences/pending/xxx"
+    src_abs = os.path.join(app.static_folder, src_rel)
+    live_dir = os.path.join(app.static_folder, "img", "conferences")
+    os.makedirs(live_dir, exist_ok=True)
+    final_name = f"{int(time.time())}_{os.path.basename(src_abs)}"
+    dst_abs = os.path.join(live_dir, final_name)
+    shutil.move(src_abs, dst_abs)
+    item["banner"] = f"img/conferences/{final_name}"
+
+    # write to approved conferences
+    confs = load_json(CONF_FILE)
+    confs.append({
+        "id": next_id(confs),
+        "name": item["name"],
+        "date": item["date"],
+        "location": item["location"],
+        "description": item["description"],
+        "banner": item["banner"],
+        "tags": item.get("tags", []),
+    })
+    save_json(CONF_FILE, confs)
+
+    # remove pending
+    pendings.pop(idx)
+    save_json(CONF_PENDING_FILE, pendings)
+
+    flash("Conference approved & published.", "ok")
+    return redirect(url_for("admin_portal"))
+
+@app.route("/admin/conf/reject", methods=["POST"])
+@login_required
+@admin_required
+def admin_conf_reject():
+    if not is_admin_verified():
+        abort(403)
+    pid = int(request.form.get("pending_id", 0))
+    pendings = load_json(CONF_PENDING_FILE)
+    idx = next((i for i,p in enumerate(pendings) if int(p.get("id",0)) == pid), None)
+    if idx is None:
+        flash("Pending item not found.", "error")
+        return redirect(url_for("admin_portal"))
+
+    item = pendings[idx]
+    # delete the pending banner file
+    delete_static_file(item.get("banner"))
+    pendings.pop(idx)
+    save_json(CONF_PENDING_FILE, pendings)
+    flash("Conference submission rejected.", "ok")
     return redirect(url_for("admin_portal"))
 
 # -------------------- Debug uploads --------------------

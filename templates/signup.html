@@ -46,7 +46,6 @@
     .review-row { display:grid; grid-template-columns:140px 1fr; gap:8px; }
     @media (max-width:560px){ .review-row { grid-template-columns:1fr; } }
 
-    /* Small helper */
     .muted { color:var(--muted); font-size:14px; }
   </style>
 </head>
@@ -120,15 +119,15 @@
       <small class="muted">Tip: Mention councils you enjoy (UNSC/DISEC/ECOSOC), prior awards, or areas of interest.</small>
     </section>
 
-    <!-- STEP 3: Profile Photo -->
+    <!-- STEP 3: Profile Photo (optional) -->
     <section class="step" data-step="2" aria-labelledby="step3-title">
-      <h3 id="step3-title" class="section-title">Profile Photo</h3>
+      <h3 id="step3-title" class="section-title">Profile Photo <span class="muted">(optional)</span></h3>
       <div class="photo-wrap">
         <img id="photoPreview" class="photo-preview" src="{{ url_for('static', filename='img/users/default.png') }}" alt="Preview">
         <div style="flex:1">
-          <label for="photo-input">Upload image</label>
-          <input id="photo-input" type="file" name="profile_photo" accept="image/*" required />
-          <small class="muted">Square images look best. We’ll auto-fit your image into a square avatar.</small>
+          <label for="photo-input">Upload image (optional)</label>
+          <input id="photo-input" type="file" name="profile_photo" accept="image/*" />
+          <small class="muted">If you skip this, we’ll use the default avatar.</small>
         </div>
       </div>
     </section>
@@ -222,7 +221,6 @@
   setStep(0);
 
   function validateStep(s){
-    // Basic per-step validation
     if (s===0){
       if (!nameInput.value.trim()) { alert("Please enter your full name."); return false; }
       if (!userInput.value.trim() || !userInput.checkValidity()) { alert("Please enter a valid username (3–24 chars, letters/numbers/._-)."); return false; }
@@ -234,9 +232,7 @@
       if (!schoolInput.value.trim()){ alert("Please enter your school."); return false; }
       if (!bioInput.value.trim()){ alert("Please enter a short bio."); return false; }
     }
-    if (s===2){
-      if (!photoInput.files || !photoInput.files[0]){ alert("Please select a profile photo."); return false; }
-    }
+    // NOTE: step 2 (photo) is OPTIONAL now — no validation needed.
     return true;
   }
 
@@ -273,10 +269,16 @@
     }catch(e){}
   })();
 
-  // Photo preview
+  // Photo preview (optional)
   photoInput.addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
-    if (!f) return;
+    if (!f) {
+      // If cleared, revert to default
+      const def = "{{ url_for('static', filename='img/users/default.png') }}";
+      photoPreview.src = def;
+      revPhoto.src = def;
+      return;
+    }
     const url = URL.createObjectURL(f);
     photoPreview.src = url;
     revPhoto.src = url;
@@ -287,6 +289,7 @@
     revUser.textContent = userInput.value.trim() || '—';
     revSchool.textContent = schoolInput.value.trim() || '—';
     revBio.textContent = bioInput.value.trim() || '—';
+    // Photo stays as chosen preview or default.png automatically
   }
 
   // Final guard on submit
@@ -302,10 +305,9 @@
       alert("Please agree to the Privacy Policy.");
       return;
     }
-    // allow normal submit
   });
 
-  // Keyboard support: Enter => next (except in textarea); Shift+Enter => back
+  // Keyboard support
   document.addEventListener('keydown', (e) => {
     const isTextarea = document.activeElement && document.activeElement.tagName === 'TEXTAREA';
     if (e.key === 'Enter' && !isTextarea && step < total-1){

@@ -4,34 +4,65 @@
   <meta charset="UTF-8" />
   <title>Sign in — Muniverse</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="/static/img/favicon.png" type="image/png">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}" type="image/png">
   <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  <style>
+    /* Optional: subtle shake when there’s an auth error */
+    @keyframes shake {
+      10%, 90% { transform: translateX(-1px); }
+      20%, 80% { transform: translateX(2px); }
+      30%, 50%, 70% { transform: translateX(-4px); }
+      40%, 60% { transform: translateX(4px); }
+    }
+    .shake { animation: shake .45s cubic-bezier(.36,.07,.19,.97) both; }
+    /* Fallback flash styles if not defined in your main CSS */
+    .flashes { display:grid; gap:8px; margin:0 0 12px 0; }
+    .flash { padding:10px 12px; border-radius:10px; border:1px solid #2a2a2a; }
+    .flash-error { background:#2b1414; border-color:#5f2a2a; color:#f6d3d3; }
+    .flash-ok    { background:#142b19; border-color:#2a5f3a; color:#cdf6dd; }
+    .flash-warn  { background:#2b2714; border-color:#5f552a; color:#f3e8c8; }
+  </style>
 </head>
 <body>
   <header class="topbar">
     <a class="logo" href="{{ url_for('onboarding') }}">
       <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
       <span>Muniverse</span>
-    </a>  
+    </a>
   </header>
 
   <main class="container narrow">
     <h2 class="section-title">Sign in</h2>
+
+    {# Render server-side flash messages (e.g., invalid credentials) #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes" id="flashBox" role="alert" aria-live="polite">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
     <form class="card form" id="loginForm" action="{{ url_for('login') }}" method="POST" novalidate>
       <label>Username
-        <input name="username" required placeholder="your username">
+        <input name="username" required placeholder="your username" autocomplete="username">
       </label>
       <label>Password
-        <input name="password" type="password" required placeholder="your password">
+        <input name="password" type="password" required placeholder="your password" autocomplete="current-password">
       </label>
       <button class="btn btn-primary" type="submit">Continue</button>
     </form>
+
     <p class="muted">New here? <a href="{{ url_for('signup') }}">Create your profile</a>.</p>
   </main>
 
   <script>
-    document.getElementById("loginForm").addEventListener("submit", function(e) {
-      const form = e.target;
+    const form = document.getElementById("loginForm");
+
+    // Client-side guardrails
+    form.addEventListener("submit", function(e) {
       const username = form.username.value.trim();
       const password = form.password.value.trim();
 
@@ -47,6 +78,17 @@
         return;
       }
     });
+
+    // If server flashed an error, gently shake the form
+    (function() {
+      const hasError = document.querySelector(".flash-error");
+      if (hasError) {
+        form.classList.add("shake");
+        // Optionally focus the username field for quick retry
+        const u = form.querySelector("input[name='username']");
+        if (u) u.focus();
+      }
+    })();
   </script>
 </body>
 </html>

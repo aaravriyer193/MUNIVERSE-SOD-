@@ -10,5 +10,16 @@
     "followers": [],
     "following": [],
     "role": "admin"
+  },
+  {
+    "name": "summit of diplomacy",
+    "username": "sod.mun",
+    "school": "MUN",
+    "bio": "the best mun",
+    "profile_pic": "img/users/default.png",
+    "password_hash": "scrypt:32768:8:1$jXQs21apXC1w4XpI$4a3f1b1090149bd666afeef6b25bada687d57990ab76aa06ee070220946b06a2ec9255fdcd8d0afc361f55520094d597d0e08a1294d86894b92fcf88926f0bdd",
+    "attendingConferences": [],
+    "followers": [],
+    "following": []
   }
 ]

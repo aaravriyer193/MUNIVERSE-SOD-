@@ -14,16 +14,13 @@
     .stat { padding:16px; border-radius:14px; border:1px solid #2b2b2b; background:linear-gradient(180deg,#161616,#101010); }
     .stat .k { font-size:28px; font-weight:800; }
     .stat .l { color:var(--muted); }
-
     table { width:100%; border-collapse:collapse; }
     th, td { padding:10px 12px; border-bottom:1px solid #272727; text-align:left; }
     th { color:#dedede; font-weight:700; }
     tr:hover { background:#121212; }
     .tbl-wrap { overflow:auto; }
-
     .tools { display:flex; gap:8px; flex-wrap:wrap; }
     .danger { background:#3a1b1b; border:1px solid #6a3434; color:#ffdede; }
-    .danger:hover { filter:brightness(1.05); }
     .ok { background:#1b3a28; border:1px solid #366a4a; color:#dcffea; }
     .btn-sm { padding:8px 12px; border-radius:10px; font-weight:700; border:1px solid #2a2a2a; background:#161616; }
     .searchbar { display:flex; gap:8px; }
@@ -32,6 +29,7 @@
     .nowrap { white-space:nowrap; }
     .w-120 { width:120px; }
     .w-80 { width:80px; }
+    .gate { max-width:480px; margin:24px auto; }
   </style>
 </head>
 <body>
@@ -64,28 +62,34 @@
     {% endif %}
   {% endwith %}
 
+  {% if not verified %}
+    <section class="gate card pad">
+      <h2 class="section-title">Admin Verification</h2>
+      <p class="muted">Enter the admin password to unlock moderation tools and approvals.</p>
+      <form method="post" action="{{ url_for('admin_verify') }}" class="form">
+        <label>Admin password
+          <input name="admin_password" type="password" placeholder="••••••••" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Unlock Admin Mode</button>
+      </form>
+    </section>
+    {% set hide_rest = true %}
+  {% else %}
+    {% set hide_rest = false %}
+  {% endif %}
+
+  {% if not hide_rest %}
   <h2 class="section-title">Admin Dashboard</h2>
 
   <section class="cards">
-    <div class="stat">
-      <div class="k">{{ stats.total_users }}</div>
-      <div class="l">Total Users</div>
-    </div>
-    <div class="stat">
-      <div class="k">{{ stats.total_posts }}</div>
-      <div class="l">Total Posts</div>
-    </div>
-    <div class="stat">
-      <div class="k">{{ stats.total_likes }}</div>
-      <div class="l">Total Likes</div>
-    </div>
-    <div class="stat">
-      <div class="k">{{ stats.total_comments }}</div>
-      <div class="l">Total Comments</div>
-    </div>
+    <div class="stat"><div class="k">{{ stats.total_users }}</div><div class="l">Total Users</div></div>
+    <div class="stat"><div class="k">{{ stats.total_posts }}</div><div class="l">Total Posts</div></div>
+    <div class="stat"><div class="k">{{ stats.total_likes }}</div><div class="l">Total Likes</div></div>
+    <div class="stat"><div class="k">{{ stats.total_comments }}</div><div class="l">Total Comments</div></div>
   </section>
 
   <section class="admin-grid">
+    <!-- Top Users -->
     <div class="card pad">
       <h3 class="section-title">Top Users by Likes Received</h3>
       <div class="tbl-wrap">
@@ -96,12 +100,11 @@
           <tbody>
           {% for u in insights.top_users_by_likes %}
             <tr>
-              <td>
-                <img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
-                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a>
-              </td>
-              <td class="nowrap">{{ u.likes }}</td>
-              <td class="nowrap">{{ u.posts }}</td>
+              <td><img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
+                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a></td>
+              <td class="nowrap">{{ (u.stats.posts if u.stats is defined else 0) }}</td>
+              <td class="nowrap">{{ (u.stats.likes if u.stats is defined else 0) }}</td>
+
               <td class="nowrap">{{ (u.followers|length) if u.followers else 0 }}</td>
               <td class="nowrap">{{ (u.following|length) if u.following else 0 }}</td>
             </tr>
@@ -113,6 +116,7 @@
       </div>
     </div>
 
+    <!-- Top Posts -->
     <div class="card pad">
       <h3 class="section-title">Top Posts (Most Liked)</h3>
       <div class="tbl-wrap">
@@ -146,18 +150,16 @@
       </div>
     </div>
 
+    <!-- Users -->
     <div class="card pad">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
         <h3 class="section-title" style="margin:0;">All Users</h3>
         <form method="get" class="searchbar" action="{{ url_for('admin_portal') }}">
           <input name="uq" placeholder="Filter @username or name…" value="{{ uq|default('') }}">
           <button class="btn-sm" type="submit">Search</button>
-          {% if uq %}
-            <a class="btn-sm" href="{{ url_for('admin_portal') }}">Clear</a>
-          {% endif %}
+          {% if uq %}<a class="btn-sm" href="{{ url_for('admin_portal') }}">Clear</a>{% endif %}
         </form>
       </div>
-
       <div class="tbl-wrap">
         <table>
           <thead><tr>
@@ -166,14 +168,12 @@
           <tbody>
           {% for u in users %}
             <tr>
-              <td>
-                <img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
-                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a>
-              </td>
+              <td><img class="avatar-16" src="{{ url_for('static', filename=u.profile_pic) }}" alt="">
+                <a href="{{ url_for('profile', username=u.username) }}">@{{ u.username }}</a></td>
               <td>{{ u.name }}</td>
               <td>{{ u.school }}</td>
-              <td>{{ u._stats.posts }}</td>
-              <td>{{ u._stats.likes }}</td>
+              <td>{{ u.stats.posts }}</td>
+              <td>{{ u.stats.likes }}</td>
               <td>{{ u.role|default('user') }}</td>
               <td>
                 <div class="tools">
@@ -185,9 +185,7 @@
                   <form method="post" action="{{ url_for('admin_toggle_admin') }}"
                         onsubmit="return confirm('Toggle admin for @{{ u.username }}?');" style="display:inline;">
                     <input type="hidden" name="username" value="{{ u.username }}">
-                    <button class="btn-sm ok" type="submit">
-                      {% if u.role == 'admin' %}Revoke Admin{% else %}Make Admin{% endif %}
-                    </button>
+                    <button class="btn-sm ok" type="submit">{% if u.role == 'admin' %}Revoke Admin{% else %}Make Admin{% endif %}</button>
                   </form>
                 </div>
               </td>
@@ -200,6 +198,7 @@
       </div>
     </div>
 
+    <!-- All Posts -->
     <div class="card pad">
       <h3 class="section-title">All Posts</h3>
       <div class="tbl-wrap">
@@ -233,7 +232,47 @@
         </table>
       </div>
     </div>
+
+    <!-- Pending Conferences (approve/reject) -->
+    <div class="card pad">
+      <h3 class="section-title">Pending Conferences</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Slug</th><th>Name</th><th>Date</th><th>Location</th><th>Submitted By</th><th>Banner</th><th class="w-120">Actions</th>
+          </tr></thead>
+          <tbody>
+          {% for c in pendings %}
+            <tr>
+              <td>#{{ c.id }}</td>
+              <td>{{ c.slug }}</td>
+              <td>{{ c.name }}</td>
+              <td>{{ c.date }}</td>
+              <td>{{ c.location }}</td>
+              <td>@{{ c.submitted_by }}</td>
+              <td><a href="{{ url_for('static', filename=c.banner) }}" target="_blank">preview</a></td>
+              <td>
+                <div class="tools">
+                  <form method="post" action="{{ url_for('admin_conf_approve') }}" onsubmit="return confirm('Approve and publish this conference?');">
+                    <input type="hidden" name="pending_id" value="{{ c.id }}">
+                    <button class="btn-sm ok" type="submit">Approve</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin_conf_reject') }}" onsubmit="return confirm('Reject and delete this submission?');">
+                    <input type="hidden" name="pending_id" value="{{ c.id }}">
+                    <button class="btn-sm danger" type="submit">Reject</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="8">No pending submissions.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
+  {% endif %}
 </main>
 </body>
 </html>
