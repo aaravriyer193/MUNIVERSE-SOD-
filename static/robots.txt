@@ -1,0 +1,22 @@
+User-agent: *
+Disallow: /admin
+Disallow: /settings
+Disallow: /logout
+Disallow: /_uploads
+
+# Allow everything else
+Allow: /
+
+# Allow static assets
+Allow: /static/
+Allow: /static/img/
+Allow: /static/css/
+Allow: /static/js/
+
+# Sitemaps
+Sitemap: https://www.muniverse.social/sitemap.xml
+Sitemap: https://www.muniverse.social/sitemap-static.xml
+Sitemap: https://www.muniverse.social/sitemap-posts.xml
+Sitemap: https://www.muniverse.social/sitemap-profiles.xml
+Sitemap: https://www.muniverse.social/sitemap-conferences.xml
+Sitemap: https://www.muniverse.social/sitemap-forums.xml

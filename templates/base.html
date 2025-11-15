@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    http-equiv="X-UA-Compatible"
+    content="IE=edge"
+  />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+
+  {# ---------- BASIC TITLE + DESCRIPTION ---------- #}
+  <title>{% block title %}Muniverse — Social Network for MUN Delegates{% endblock %}</title>
+
+  <meta
+    name="description"
+    content="{% block description %}Muniverse is a social platform for Model United Nations delegates to share posts, discover conferences, and connect with other MUN enthusiasts around the world.{% endblock %}"
+  />
+
+  {# Optional keywords (not very important today, but harmless) #}
+  <meta
+    name="keywords"
+    content="{% block keywords %}mun, model united nations, mun conference, mun social network, muniverse, mun delegates, mun forums, mun conferences{% endblock %}"
+  />
+
+  {# ---------- ROBOTS / INDEXING CONTROL ---------- #}
+  <meta
+    name="robots"
+    content="{% block robots %}index,follow,max-image-preview:large{% endblock %}"
+  />
+
+  {# ---------- CANONICAL URL ---------- #}
+  <link
+    rel="canonical"
+    href="{% block canonical %}{{ request.url_root.rstrip('/') }}{{ request.path }}{% endblock %}"
+  />
+
+  {# ---------- FAVICONS & PWA BITS ---------- #}
+  <link
+    rel="icon"
+    href="{{ url_for('static', filename='img/favicon.png') }}"
+    type="image/png"
+  />
+  <link
+    rel="apple-touch-icon"
+    href="{{ url_for('static', filename='img/favicon.png') }}"
+  />
+  <link
+    rel="manifest"
+    href="{{ url_for('static', filename='site.webmanifest') }}"
+  />
+  <meta name="theme-color" content="#05060b" />
+
+  {# ---------- OPEN GRAPH (FACEBOOK / LINKEDIN / ETC) ---------- #}
+  {% set og_title = self.title()|striptags %}
+  {% set og_desc  = self.description()|striptags %}
+  {% set og_url   = request.url %}
+  {% set og_img   = url_for('static', filename='img/og-default.png', _external=True) %}
+
+  <meta property="og:site_name" content="Muniverse" />
+  <meta property="og:title" content="{{ og_title }}" />
+  <meta property="og:description" content="{{ og_desc }}" />
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}" />
+  <meta property="og:url" content="{{ og_url }}" />
+  <meta property="og:image" content="{{ og_img }}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  {# ---------- TWITTER CARDS ---------- #}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@muniverse_social" />
+  <meta name="twitter:title" content="{{ og_title }}" />
+  <meta name="twitter:description" content="{{ og_desc }}" />
+  <meta name="twitter:image" content="{{ og_img }}" />
+
+  {# ---------- WEBMASTER VERIFICATION TAGS ---------- #}
+  {# Replace the content values with the real tokens from each platform #}
+  <!-- Google Search Console -->
+  <meta
+    name="google-site-verification"
+    content="REPLACE_WITH_GOOGLE_VERIFICATION_TOKEN"
+  />
+
+  <!-- Bing / Microsoft Webmaster -->
+  <meta
+    name="msvalidate.01"
+    content="REPLACE_WITH_BING_VERIFICATION_TOKEN"
+  />
+
+  <!-- Yandex Webmaster -->
+  <meta
+    name="yandex-verification"
+    content="REPLACE_WITH_YANDEX_VERIFICATION_TOKEN"
+  />
+
+  <!-- Pinterest site verification -->
+  <meta
+    name="p:domain_verify"
+    content="REPLACE_WITH_PINTEREST_VERIFICATION_TOKEN"
+  />
+
+  {# ---------- STRUCTURED DATA / JSON-LD HOOK ---------- #}
+  {% block structured_data %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Muniverse",
+    "url": "https://www.muniverse.social",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.muniverse.social/explore?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  {% endblock %}
+
+  {# ---------- CSS / FONTS ---------- #}
+  <link
+    href="{{ url_for('static', filename='css/style.css') }}"
+    rel="stylesheet"
+  />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="{{ url_for('onboarding') }}">
+      <img
+        class="logo-image"
+        src="{{ url_for('static', filename='img/favicon.png') }}"
+        alt="Muniverse Logo"
+      />
+      <span>Muniverse</span>
+    </a>
+
+    <input
+      type="checkbox"
+      id="menu-toggle"
+      class="menu-toggle"
+      aria-label="Toggle navigation"
+    />
+    <label for="menu-toggle" class="hamburger">
+      <span class="bar top-bar"></span>
+      <span class="bar middle-bar"></span>
+      <span class="bar bottom-bar"></span>
+    </label>
+
+    <nav class="nav">
+      <a href="{{ url_for('feed') }}">Feed</a>
+      <a href="{{ url_for('explore') }}">Explore</a>
+      <a href="{{ url_for('forums') }}">Forums</a>
+      <a href="{{ url_for('conferences') }}">Conferences</a>
+      {% if current_user %}
+        <a
+          href="{{ url_for('profile', username=current_user.username) }}"
+          class="avatar-link"
+          title="@{{ current_user.username }}"
+        >
+          <img
+            class="avatar-circle"
+            src="{{ url_for('static', filename=current_user.profile_pic) }}"
+            alt="{{ current_user.username }}"
+          />
+        </a>
+        <a class="btn-ghost" href="{{ url_for('logout') }}">Sign out</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Sign in</a>
+        <a class="btn" href="{{ url_for('signup') }}">Join Muniverse</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; {{ 2025 }} Muniverse. All rights reserved.</p>
+      <p>
+        <a href="{{ url_for('about') }}">About</a> ·
+        <a href="{{ url_for('privacypolicy') }}">Privacy Policy</a>
+      </p>
+    </div>
+  </footer>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

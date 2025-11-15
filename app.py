@@ -1,6 +1,6 @@
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, abort, session, flash, jsonify
+    url_for, abort, session, flash, jsonify, Response
 )
 from werkzeug.utils import secure_filename
 # pip install Werkzeug if missing
@@ -15,8 +15,14 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("MUNIVERSE_SECRET", "dev-change-me")
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB uploads
 
+# Site URL for sitemaps / SEO
+SITE_URL = os.environ.get("MUNIVERSE_SITE_URL", "https://www.muniverse.social")
+
 # Admin portal password (set in env for production)
-ADMIN_PORTAL_PASSWORD = os.environ.get("MUNIVERSE_ADMIN_PASSWORD", "kwQUkoOb45A2O6qAWXqmzjP8Tn7FrkrH")
+ADMIN_PORTAL_PASSWORD = os.environ.get(
+    "MUNIVERSE_ADMIN_PASSWORD",
+    "kwQUkoOb45A2O6qAWXqmzjP8Tn7FrkrH"
+)
 
 # -----------------------------------------------------------------------------
 # Data paths
@@ -47,6 +53,8 @@ for d in (POST_UPLOAD_DIR, USER_UPLOAD_DIR, CONF_UPLOAD_DIR, PENDING_UPLOAD_DIR)
     os.makedirs(d, exist_ok=True)
 
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
+
+
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
 
@@ -64,12 +72,14 @@ def delete_static_file(path_suffix: str):
     except Exception as e:
         app.logger.error(f"Error deleting file {path_suffix}: {e}")
 
+
 def slugify(s: str) -> str:
     s = (s or "").strip().lower()
     s = re.sub(r"[^a-z0-9\s-]", "", s)
     s = re.sub(r"\s+", "-", s)
     s = re.sub(r"-{2,}", "-", s)
     return s[:80] or "topic"
+
 
 def add_notification(kind: str, payload: dict):
     notifs = load_json(NOTIFS_FILE)
@@ -89,11 +99,13 @@ def load_json(path):
     except json.JSONDecodeError:
         return []
 
+
 def save_json(path, data):
     tmp = f"{path}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     os.replace(tmp, path)
+
 
 def next_id(items):
     """Robustly gets the next integer ID from a list of dicts."""
@@ -113,6 +125,7 @@ def next_id(items):
 def find_user(users, username):
     return next((u for u in users if u.get("username") == username), None)
 
+
 def save_user(users, user):
     for i, u in enumerate(users):
         if u.get("username") == user["username"]:
@@ -129,12 +142,14 @@ def normalize_post(post: dict) -> dict:
     post.setdefault("comments", [])
     return post
 
+
 def get_post_by_id(post_id: int):
     posts = load_json(POSTS_FILE)
     for p in posts:
         if p.get("id") == post_id:
             return posts, p
     return posts, None
+
 
 def save_posts(posts):
     save_json(POSTS_FILE, posts)
@@ -149,6 +164,7 @@ def get_current_user():
     users = load_json(USERS_FILE)
     return find_user(users, uname)
 
+
 def login_required(view):
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
@@ -157,6 +173,7 @@ def login_required(view):
             return redirect(url_for("login", next=request.path))
         return view(*args, **kwargs)
     return wrapped
+
 
 def admin_required(view):
     @functools.wraps(view)
@@ -168,9 +185,11 @@ def admin_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+
 def is_admin_verified() -> bool:
     u = get_current_user()
     return bool(u and u.get("role") == "admin" and session.get("admin_verified") is True)
+
 
 @app.context_processor
 def inject_user():
@@ -180,11 +199,17 @@ def inject_user():
 # Insights helper for Admin
 # -----------------------------------------------------------------------------
 def build_insights(users, posts, limit=10):
-    by_user = {u["username"]: {"likes": 0, "posts": 0,
-                               "profile_pic": u.get("profile_pic", "img/users/default.png"),
-                               "followers": u.get("followers", []),
-                               "following": u.get("following", [])}
-               for u in users}
+    by_user = {
+        u["username"]: {
+            "likes": 0,
+            "posts": 0,
+            "profile_pic": u.get("profile_pic", "img/users/default.png"),
+            "followers": u.get("followers", []),
+            "following": u.get("following", [])
+        }
+        for u in users
+        if u.get("username")
+    }
 
     total_likes = 0
     total_comments = 0
@@ -200,9 +225,18 @@ def build_insights(users, posts, limit=10):
 
     top_users = []
     for u in users:
-        stats = by_user.get(u["username"])
+        uname = u.get("username")
+        if not uname:
+            continue
+        stats = by_user.get(uname, {
+            "likes": 0,
+            "posts": 0,
+            "profile_pic": u.get("profile_pic", "img/users/default.png"),
+            "followers": u.get("followers", []),
+            "following": u.get("following", [])
+        })
         top_users.append({
-            "username": u["username"],
+            "username": uname,
             "profile_pic": stats["profile_pic"],
             "likes": stats["likes"],
             "posts": stats["posts"],
@@ -212,7 +246,11 @@ def build_insights(users, posts, limit=10):
     top_users.sort(key=lambda x: x["likes"], reverse=True)
     top_users = top_users[:limit]
 
-    top_posts = sorted([normalize_post(p) for p in posts], key=lambda x: x.get("likes", 0), reverse=True)[:limit]
+    top_posts = sorted(
+        [normalize_post(p) for p in posts],
+        key=lambda x: x.get("likes", 0),
+        reverse=True
+    )[:limit]
 
     stats = {
         "total_users": len(users),
@@ -221,6 +259,32 @@ def build_insights(users, posts, limit=10):
         "total_comments": total_comments,
     }
     return stats, {"top_users_by_likes": top_users, "top_posts": top_posts}
+
+# -----------------------------------------------------------------------------
+# Global headers (SEO-ish caching + security)
+# -----------------------------------------------------------------------------
+@app.after_request
+def add_global_headers(response):
+    # basic caching: strong cache for static, light cache for dynamic
+    if request.path.startswith("/static/"):
+        response.headers.setdefault(
+            "Cache-Control",
+            "public, max-age=31536000, immutable"
+        )
+    else:
+        response.headers.setdefault(
+            "Cache-Control",
+            "public, max-age=60"
+        )
+
+    # some simple security headers
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains"
+    )
+    return response
 
 # -----------------------------------------------------------------------------
 # Routes
@@ -247,11 +311,158 @@ def login():
         return redirect(nxt)
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("onboarding"))
 
+
+@app.route("/robots.txt")
+def robots():
+    # serve static robots.txt
+    return app.send_static_file("robots.txt")
+
+# -------------------- SITEMAPS --------------------
+@app.route("/sitemap.xml")
+def sitemap_index():
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>{SITE_URL}/sitemap-static.xml</loc></sitemap>
+  <sitemap><loc>{SITE_URL}/sitemap-posts.xml</loc></sitemap>
+  <sitemap><loc>{SITE_URL}/sitemap-profiles.xml</loc></sitemap>
+  <sitemap><loc>{SITE_URL}/sitemap-conferences.xml</loc></sitemap>
+  <sitemap><loc>{SITE_URL}/sitemap-forums.xml</loc></sitemap>
+</sitemapindex>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-static.xml")
+def sitemap_static():
+    pages = [
+        ("/", "weekly", "0.9"),
+        ("/feed", "hourly", "0.9"),
+        ("/explore", "hourly", "0.9"),
+        ("/forums", "daily", "0.8"),
+        ("/conferences", "daily", "0.8"),
+        ("/about", "monthly", "0.5"),
+        ("/privacypolicy", "yearly", "0.3"),
+        ("/login", "weekly", "0.4"),
+        ("/signup", "weekly", "0.4"),
+    ]
+    urls_xml = []
+    today = datetime.utcnow().date().isoformat()
+    for path, freq, prio in pages:
+        urls_xml.append(f"""
+  <url>
+    <loc>{SITE_URL}{path}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{freq}</changefreq>
+    <priority>{prio}</priority>
+  </url>""")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls_xml)}
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-posts.xml")
+def sitemap_posts():
+    posts = load_json(POSTS_FILE)
+    urls_xml = []
+    today = datetime.utcnow().date().isoformat()
+    for p in posts:
+        pid = p.get("id")
+        if not pid:
+            continue
+        loc = f"{SITE_URL}/post/{pid}"
+        lastmod = today
+        urls_xml.append(f"""
+  <url>
+    <loc>{loc}</loc>
+    <lastmod>{lastmod}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>""")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls_xml)}
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-profiles.xml")
+def sitemap_profiles():
+    users = load_json(USERS_FILE)
+    urls_xml = []
+    today = datetime.utcnow().date().isoformat()
+    for u in users:
+        uname = u.get("username")
+        if not uname:
+            continue
+        loc = f"{SITE_URL}/profile/{uname}"
+        urls_xml.append(f"""
+  <url>
+    <loc>{loc}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>""")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls_xml)}
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-conferences.xml")
+def sitemap_conferences():
+    confs = load_json(CONF_FILE)
+    urls_xml = []
+    for c in confs:
+        cid = c.get("id")
+        if not cid:
+            continue
+        loc = f"{SITE_URL}/conference/{cid}"
+        lastmod = c.get("date") or datetime.utcnow().date().isoformat()
+        urls_xml.append(f"""
+  <url>
+    <loc>{loc}</loc>
+    <lastmod>{lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>""")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls_xml)}
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/sitemap-forums.xml")
+def sitemap_forums():
+    threads = load_json(FORUM_THREADS)
+    urls_xml = []
+    for t in threads:
+        slug = t.get("slug") or str(t.get("id"))
+        loc = f"{SITE_URL}/forums/{slug}"
+        ts = t.get("created_ts", int(time.time()))
+        lastmod = datetime.utcfromtimestamp(ts).date().isoformat()
+        urls_xml.append(f"""
+  <url>
+    <loc>{loc}</loc>
+    <lastmod>{lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>""")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{''.join(urls_xml)}
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
+
+# -------------------- Signup --------------------
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -330,6 +541,7 @@ def settings_password():
         return redirect(url_for("profile", username=me["username"]))
     return render_template("settings_password.html", user=me)
 
+
 @app.route("/settings/profile", methods=["GET", "POST"])
 @login_required
 def settings_profile():
@@ -380,12 +592,14 @@ def explore():
     posts.sort(key=lambda x: x.get("id", 0), reverse=True)
     return render_template("explore.html", posts=posts, q=q)
 
+
 @app.route("/feed")
 def feed():
     posts = load_json(POSTS_FILE)
     posts = [normalize_post(p) for p in posts]
     posts.sort(key=lambda x: x.get("id", 0), reverse=True)
     return render_template("feed.html", posts=posts)
+
 
 @app.route("/post/<int:post_id>")
 def post(post_id):
@@ -428,6 +642,7 @@ def post_edit(post_id):
         return redirect(url_for("profile", username=session["username"]))
 
     return render_template("post_edit.html", post=post)
+
 
 @app.route("/post/<int:post_id>/delete", methods=["POST"])
 @login_required
@@ -502,6 +717,7 @@ def like_post(post_id):
     save_posts(posts)
     return jsonify({"ok": True, "liked": (u in post["liked_by"]), "likes": post["likes"]})
 
+
 @app.route("/post/<int:post_id>/comment", methods=["POST"])
 @login_required
 def comment_post(post_id):
@@ -535,6 +751,7 @@ def comment_post(post_id):
 def conferences():
     confs = load_json(CONF_FILE)
     return render_template("conferences.html", conferences=confs)
+
 
 @app.route("/conference/<int:conf_id>")
 def conference(conf_id):
@@ -673,10 +890,14 @@ def forums():
             return q in content
         filtered_threads = [t for t in filtered_threads if hit(t)]
     if tag:
-        filtered_threads = [t for t in filtered_threads if tag in [x.lower() for x in t.get("tags", [])]]
+        filtered_threads = [
+            t for t in filtered_threads
+            if tag in [x.lower() for x in t.get("tags", [])]
+        ]
 
     filtered_threads.sort(key=lambda t: t.get("created_ts", 0), reverse=True)
     return render_template("forums.html", threads=filtered_threads, q=q, tag=tag)
+
 
 @app.route("/forums/new", methods=["GET", "POST"])
 @login_required
@@ -711,10 +932,15 @@ def forum_new():
         return redirect(url_for("forum_thread", slug=slug))
     return render_template("forum_new.html")
 
+
 @app.route("/forums/<slug>", methods=["GET", "POST"])
 def forum_thread(slug):
     threads = load_json(FORUM_THREADS)
-    thread_idx = next((i for i,t in enumerate(threads) if t.get("slug") == slug or str(t.get("id")) == slug), None)
+    thread_idx = next(
+        (i for i, t in enumerate(threads)
+         if t.get("slug") == slug or str(t.get("id")) == slug),
+        None
+    )
     if thread_idx is None:
         abort(404, "Thread not found")
     thread = threads[thread_idx]
@@ -761,6 +987,7 @@ def forum_thread(slug):
 def about():
     return render_template("about.html")
 
+
 @app.route("/privacypolicy")
 def privacypolicy():
     return render_template("privacypolicy.html")
@@ -779,6 +1006,7 @@ def admin_verify():
         flash("Invalid admin password.", "error")
     return redirect(url_for("admin_portal"))
 
+
 @app.route("/admin")
 @login_required
 @admin_required
@@ -792,14 +1020,17 @@ def admin_portal():
     stats, insights = build_insights(users, posts, limit=10)
 
     # attach simple stats to users for table
-    by_user = {u["username"]: {"likes": 0, "posts": 0} for u in users}
+    by_user = {u["username"]: {"likes": 0, "posts": 0} for u in users if u.get("username")}
     for p in posts:
         uname = p.get("username")
         if uname in by_user:
             by_user[uname]["likes"] += int(p.get("likes", 0))
             by_user[uname]["posts"] += 1
     for u in users:
-        u["stats"] = by_user.get(u["username"], {"likes": 0, "posts": 0})
+        uname = u.get("username")
+        if not uname:
+            continue
+        u["stats"] = by_user.get(uname, {"likes": 0, "posts": 0})
 
     # filter users if query
     if uq:
@@ -812,7 +1043,11 @@ def admin_portal():
 
     pendings = []
     if verified:
-        pendings = sorted(load_json(CONF_PENDING_FILE), key=lambda x: x.get("submitted_ts", 0), reverse=True)
+        pendings = sorted(
+            load_json(CONF_PENDING_FILE),
+            key=lambda x: x.get("submitted_ts", 0),
+            reverse=True
+        )
 
     return render_template(
         "adminportal.html",
@@ -821,6 +1056,7 @@ def admin_portal():
         stats=stats, insights=insights, uq=uq,
         pendings=pendings
     )
+
 
 @app.route("/admin/delete_post", methods=["POST"])
 @login_required
@@ -845,6 +1081,7 @@ def admin_delete_post():
     save_json(POSTS_FILE, posts)
     flash(f"Deleted post #{pid}.", "ok")
     return redirect(url_for("admin_portal"))
+
 
 @app.route("/admin/delete_user", methods=["POST"])
 @login_required
@@ -887,6 +1124,7 @@ def admin_delete_user():
     flash(f"Deleted user @{uname} and {deleted} posts.", "ok")
     return redirect(url_for("admin_portal"))
 
+
 @app.route("/admin/toggle_admin", methods=["POST"])
 @login_required
 @admin_required
@@ -918,7 +1156,7 @@ def admin_conf_approve():
         abort(403)
     pid = int(request.form.get("pending_id", 0))
     pendings = load_json(CONF_PENDING_FILE)
-    idx = next((i for i,p in enumerate(pendings) if int(p.get("id",0)) == pid), None)
+    idx = next((i for i, p in enumerate(pendings) if int(p.get("id", 0)) == pid), None)
     if idx is None:
         flash("Pending item not found.", "error")
         return redirect(url_for("admin_portal"))
@@ -954,6 +1192,7 @@ def admin_conf_approve():
     flash("Conference approved & published.", "ok")
     return redirect(url_for("admin_portal"))
 
+
 @app.route("/admin/conf/reject", methods=["POST"])
 @login_required
 @admin_required
@@ -962,7 +1201,7 @@ def admin_conf_reject():
         abort(403)
     pid = int(request.form.get("pending_id", 0))
     pendings = load_json(CONF_PENDING_FILE)
-    idx = next((i for i,p in enumerate(pendings) if int(p.get("id",0)) == pid), None)
+    idx = next((i for i, p in enumerate(pendings) if int(p.get("id", 0)) == pid), None)
     if idx is None:
         flash("Pending item not found.", "error")
         return redirect(url_for("admin_portal"))
@@ -985,12 +1224,18 @@ def _uploads():
         "CONF_UPLOAD_DIR": CONF_UPLOAD_DIR,
         "post_files": [], "user_files": [], "conference_files": []
     }
-    try: info["post_files"] = sorted(os.listdir(POST_UPLOAD_DIR))
-    except Exception as e: info["post_files"] = [f"<error: {e}>"]
-    try: info["user_files"] = sorted(os.listdir(USER_UPLOAD_DIR))
-    except Exception as e: info["user_files"] = [f"<error: {e}>"]
-    try: info["conference_files"] = sorted(os.listdir(CONF_UPLOAD_DIR))
-    except Exception as e: info["conference_files"] = [f"<error: {e}>"]
+    try:
+        info["post_files"] = sorted(os.listdir(POST_UPLOAD_DIR))
+    except Exception as e:
+        info["post_files"] = [f"<error: {e}>"]
+    try:
+        info["user_files"] = sorted(os.listdir(USER_UPLOAD_DIR))
+    except Exception as e:
+        info["user_files"] = [f"<error: {e}>"]
+    try:
+        info["conference_files"] = sorted(os.listdir(CONF_UPLOAD_DIR))
+    except Exception as e:
+        info["conference_files"] = [f"<error: {e}>"]
     return info
 
 # -------------------- 404 handler --------------------
