@@ -9,5 +9,16 @@
       "submitted_by": "sod.mun"
     },
     "ts": 1762960961
+  },
+  {
+    "id": 2,
+    "kind": "conference_submission",
+    "payload": {
+      "pending_id": 1,
+      "slug": "aaaaa",
+      "name": "aaa",
+      "submitted_by": "admin"
+    },
+    "ts": 1763140370
   }
 ]

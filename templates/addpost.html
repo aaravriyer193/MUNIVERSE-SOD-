@@ -10,15 +10,15 @@
 <body>
   <header class="topbar">
     <a class="logo" href="{{ url_for('feed') }}">
-    <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
-    <span>Muniverse</span>
+      <img class="logo-image" src="{{ url_for('static', filename='img/favicon.png') }}" alt="Muniverse Logo">
+      <span>Muniverse</span>
     </a>   
     <input type="checkbox" id="menu-toggle" class="menu-toggle" aria-label="Toggle navigation">
-  <label for="menu-toggle" class="hamburger">
-    <span class="bar top-bar"></span>
-    <span class="bar middle-bar"></span>
-    <span class="bar bottom-bar"></span>
-  </label> 
+    <label for="menu-toggle" class="hamburger">
+      <span class="bar top-bar"></span>
+      <span class="bar middle-bar"></span>
+      <span class="bar bottom-bar"></span>
+    </label> 
     <nav class="nav">
       <a class="active" href="{{ url_for('feed') }}">Back to Feed</a>
       {% if current_user %}
@@ -55,11 +55,19 @@
         </label>
 
         <label>Upload image
-          <input id="imageFile" type="file" name="image_file" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" required />
-          <small>Saved to <code>static/img/posts/</code> and stored as <code>img/posts/&lt;filename&gt;</code>.</small>
+          <input
+            id="imageFile"
+            type="file"
+            name="image_file"
+            accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+            required
+          />
+          <small>
+            Image will be center-cropped to an Instagram-style 4:5 portrait ratio and compressed to stay under 400 KB.
+          </small>
         </label>
 
-        <!-- Live preview -->
+        <!-- Live preview of CROPPED + COMPRESSED image -->
         <div id="previewWrap" class="card" style="display:none; padding:10px;">
           <img id="previewImg" alt="Image preview" style="width:100%; height:auto; display:block; border-radius:10px;" />
           <small id="previewMeta" class="muted"></small>
@@ -73,52 +81,174 @@
   {% if current_user %}
   <script>
     (function () {
-      const form = document.getElementById('postForm');
-      const input = document.getElementById('imageFile');
+      const form        = document.getElementById('postForm');
+      const input       = document.getElementById('imageFile');
       const previewWrap = document.getElementById('previewWrap');
       const previewImg  = document.getElementById('previewImg');
       const previewMeta = document.getElementById('previewMeta');
 
-      const ALLOWED = ['png','jpg','jpeg','gif','webp'];
-      const MAX_MB = 15;
+      const ALLOWED        = ['png','jpg','jpeg','gif','webp'];
+      const MAX_UPLOAD_MB  = 15;         // max size for the ORIGINAL file
+      const MAX_BYTES      = 400 * 1024; // 400 KB final size cap
+      const IG_RATIO       = 4 / 5;      // width / height => Instagram 4:5 portrait
+      const MAX_LONG_SIDE  = 1080;       // final longest side (similar to Instagram)
+      const MIN_QUALITY    = 0.2;        // minimum JPEG quality
 
-      if (input) {
-        input.addEventListener('change', () => {
-          const f = input.files && input.files[0];
-          if (!f) { previewWrap.style.display = 'none'; return; }
+      let lastCompressedOk = false;
 
-          const ext = (f.name.split('.').pop() || '').toLowerCase();
+      // Compress helper: iteratively lower quality until <= MAX_BYTES or MIN_QUALITY
+      function compressToLimit(canvas, cb) {
+        let quality = 0.9;
+
+        function step() {
+          canvas.toBlob(function (blob) {
+            if (!blob) {
+              cb(new Error('Compression failed'), null);
+              return;
+            }
+            if (blob.size <= MAX_BYTES || quality <= MIN_QUALITY) {
+              cb(null, blob);
+            } else {
+              quality -= 0.1;
+              if (quality < MIN_QUALITY) quality = MIN_QUALITY;
+              step();
+            }
+          }, 'image/jpeg', quality);
+        }
+
+        step();
+      }
+
+      function processFile(file) {
+        return new Promise((resolve, reject) => {
+          const ext = (file.name.split('.').pop() || '').toLowerCase();
           const okType = ALLOWED.includes(ext);
-          const okSize = f.size <= MAX_MB * 1024 * 1024;
+          const okSize = file.size <= MAX_UPLOAD_MB * 1024 * 1024;
 
           if (!okType) {
-            alert('Invalid file type. Allowed: ' + ALLOWED.join(', '));
-            input.value = '';
-            previewWrap.style.display = 'none';
-            return;
+            return reject(new Error('Invalid file type. Allowed: ' + ALLOWED.join(', ')));
           }
           if (!okSize) {
-            alert('File too large. Max ' + MAX_MB + 'MB.');
-            input.value = '';
-            previewWrap.style.display = 'none';
-            return;
+            return reject(new Error('File too large. Max ' + MAX_UPLOAD_MB + 'MB.'));
           }
 
-          const r = new FileReader();
-          r.onload = e => {
-            previewImg.src = e.target.result;
-            previewWrap.style.display = '';
-            previewMeta.textContent = `${f.name} • ${(f.size/1024/1024).toFixed(2)} MB`;
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+              const iw = img.naturalWidth;
+              const ih = img.naturalHeight;
+
+              // Center-crop to fixed IG_RATIO (4:5, portrait)
+              const currentRatio = iw / ih;
+              let cropW, cropH, sx, sy;
+
+              if (currentRatio > IG_RATIO) {
+                // Too wide -> crop width
+                cropH = ih;
+                cropW = ih * IG_RATIO;
+                sx = (iw - cropW) / 2;
+                sy = 0;
+              } else {
+                // Too tall or equal -> crop height
+                cropW = iw;
+                cropH = iw / IG_RATIO;
+                sx = 0;
+                sy = (ih - cropH) / 2;
+              }
+
+              // Scale so that longest side = MAX_LONG_SIDE (or smaller, no upscaling beyond original crop)
+              const longSide = Math.max(cropW, cropH);
+              const scale = Math.min(1, MAX_LONG_SIDE / longSide);
+              const outW = Math.round(cropW * scale);
+              const outH = Math.round(cropH * scale);
+
+              const canvas = document.createElement('canvas');
+              canvas.width  = outW;
+              canvas.height = outH;
+              const ctx = canvas.getContext('2d');
+
+              // Optional: slightly "pixelate" by disabling smoothing
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+
+              ctx.drawImage(
+                img,
+                sx, sy, cropW, cropH,          // source crop
+                0, 0, outW, outH               // destination
+              );
+
+              compressToLimit(canvas, (err, blob) => {
+                if (err) return reject(err);
+
+                if (blob.size > MAX_BYTES) {
+                  return reject(new Error('Image cannot be reduced under 400 KB. Please choose a simpler/smaller image.'));
+                }
+
+                const newName = (file.name.replace(/\.[^.]+$/, '') || 'post') + '.jpg';
+                const compressedFile = new File([blob], newName, { type: 'image/jpeg' });
+
+                const url = URL.createObjectURL(blob);
+                previewImg.src = url;
+                previewWrap.style.display = '';
+                previewMeta.textContent = `4:5 • ${(blob.size / 1024).toFixed(1)} KB • ${outW}×${outH}px`;
+
+                resolve(compressedFile);
+              });
+            };
+            img.onerror = () => reject(new Error('Could not load image.'));
+            img.src = e.target.result;
           };
-          r.readAsDataURL(f);
+          reader.onerror = () => reject(new Error('Could not read file.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (input) {
+        input.addEventListener('change', async () => {
+          lastCompressedOk = false;
+          previewWrap.style.display = 'none';
+          previewImg.removeAttribute('src');
+          previewMeta.textContent = '';
+
+          const f = input.files && input.files[0];
+          if (!f) return;
+
+          try {
+            const compressedFile = await processFile(f);
+
+            // Replace original file with compressed 4:5 JPEG
+            const dt = new DataTransfer();
+            dt.items.add(compressedFile);
+            input.files = dt.files;
+
+            lastCompressedOk = true;
+          } catch (err) {
+            alert(err.message || 'Image processing failed.');
+            input.value = '';
+            previewWrap.style.display = 'none';
+            lastCompressedOk = false;
+          }
         });
       }
 
       if (form) {
         form.addEventListener('submit', (e) => {
-          if (!input.files || !input.files[0]) {
+          const f = input.files && input.files[0];
+          if (!f) {
             e.preventDefault();
             alert('Please choose an image to upload.');
+            return;
+          }
+          if (!lastCompressedOk) {
+            e.preventDefault();
+            alert('Please wait for the image to finish processing, then try again.');
+            return;
+          }
+          if (f.size > MAX_BYTES) {
+            e.preventDefault();
+            alert('Compressed image is still above 400 KB. Please choose a different image.');
+            return;
           }
         });
       }
